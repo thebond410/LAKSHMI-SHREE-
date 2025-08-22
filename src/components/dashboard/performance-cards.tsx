@@ -65,7 +65,6 @@ export default function PerformanceCards() {
         return
       }
 
-      // Ensure data is not null before proceeding
       const recordsData: EfficiencyRecord[] = data || [];
 
       const { data: settingsData, error: settingsError } = await supabase

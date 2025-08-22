@@ -26,11 +26,10 @@ export default function LowEfficiencyAlert() {
         .from('settings')
         .select('low_efficiency_threshold, whatsapp_number')
         .eq('id', 1)
-        .maybeSingle() // Use maybeSingle to avoid error if no row exists
+        .maybeSingle() 
 
       if (settingsError) {
         console.error('Error fetching settings:', settingsError)
-        // We can still proceed with default settings even if there's an error
       }
 
       const currentSettings = { 
