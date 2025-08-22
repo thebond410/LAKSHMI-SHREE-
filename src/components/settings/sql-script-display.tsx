@@ -3,6 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 const sqlScript = `
+-- Drop the old table if it exists to avoid conflicts
+-- Make sure to back up your data if needed before running this.
+-- DROP TABLE IF EXISTS "efficiency_records";
+
 -- Table for storing efficiency records from machines
 CREATE TABLE IF NOT EXISTS "efficiency_records" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -87,14 +87,14 @@ export default function PerformanceCards() {
         }
         acc[record.machine_number].push(record)
         return acc
-      }, {} as Record<string, typeof recordsData>);
+      }, {} as Record<string, EfficiencyRecord[]>);
       
       const processedData: PerformanceData[] = allMachineNumbers.map(machineNumber => {
         const records = groupedByMachine[machineNumber] || [];
         const todayRecords = records.filter(r => r.date === todayStr);
         const yesterdayRecords = records.filter(r => r.date === yesterdayStr);
 
-        const calcMetrics = (recs: typeof records) => {
+        const calcMetrics = (recs: EfficiencyRecord[]) => {
           if (recs.length === 0) return { weft: 0, efficiency: 0 };
           const totalWeft = recs.reduce((sum, r) => sum + r.weft_meter, 0);
           const totalMinutes = recs.reduce((sum, r) => sum + r.total_minutes, 0);
