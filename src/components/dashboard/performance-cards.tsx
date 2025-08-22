@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { subDays, format, startOfDay } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '../ui/skeleton'
+import type { EfficiencyRecord } from '@/lib/types'
 
 type PerformanceData = {
   machine_number: string;
@@ -59,25 +60,41 @@ export default function PerformanceCards() {
         .in('date', [todayStr, yesterdayStr]);
 
       if (error) {
-        console.error('Error fetching performance data:', error)
+        console.error('Error fetching performance data:', error.message)
         setLoading(false)
         return
       }
 
-      const groupedByMachine = data.reduce((acc, record) => {
+      // Ensure data is not null before proceeding
+      const recordsData: EfficiencyRecord[] = data || [];
+
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('settings')
+        .select('total_machines')
+        .eq('id', 1)
+        .single();
+      
+      if (settingsError) {
+          console.error("Error fetching settings for total machines:", settingsError.message);
+      }
+
+      const totalMachines = settingsData?.total_machines ?? 0;
+      const allMachineNumbers = Array.from({ length: totalMachines }, (_, i) => (i + 1).toString());
+
+      const groupedByMachine = recordsData.reduce((acc, record) => {
         if (!acc[record.machine_number]) {
           acc[record.machine_number] = []
         }
         acc[record.machine_number].push(record)
         return acc
-      }, {} as Record<string, typeof data>);
+      }, {} as Record<string, typeof recordsData>);
       
-      const processedData: PerformanceData[] = Object.keys(groupedByMachine).map(machineNumber => {
-        const records = groupedByMachine[machineNumber];
+      const processedData: PerformanceData[] = allMachineNumbers.map(machineNumber => {
+        const records = groupedByMachine[machineNumber] || [];
         const todayRecords = records.filter(r => r.date === todayStr);
         const yesterdayRecords = records.filter(r => r.date === yesterdayStr);
 
-        const calcMetrics = (recs: typeof data) => {
+        const calcMetrics = (recs: typeof records) => {
           if (recs.length === 0) return { weft: 0, efficiency: 0 };
           const totalWeft = recs.reduce((sum, r) => sum + r.weft_meter, 0);
           const totalMinutes = recs.reduce((sum, r) => sum + r.total_minutes, 0);
