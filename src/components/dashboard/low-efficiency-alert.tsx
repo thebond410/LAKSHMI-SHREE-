@@ -1,3 +1,4 @@
+
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -25,15 +26,18 @@ export default function LowEfficiencyAlert() {
         .from('settings')
         .select('low_efficiency_threshold, whatsapp_number')
         .eq('id', 1)
-        .single()
+        .maybeSingle() // Use maybeSingle to avoid error if no row exists
 
-      if (settingsError || !settingsData) {
+      if (settingsError) {
         console.error('Error fetching settings:', settingsError)
-        setLoading(false)
-        return
+        // We can still proceed with default settings even if there's an error
       }
 
-      setSettings({ threshold: settingsData.low_efficiency_threshold ?? 80, number: settingsData.whatsapp_number ?? '' })
+      const currentSettings = { 
+        threshold: settingsData?.low_efficiency_threshold ?? 80, 
+        number: settingsData?.whatsapp_number ?? '' 
+      }
+      setSettings(currentSettings)
 
       const { data, error } = await supabase
         .from('efficiency_records')
@@ -62,7 +66,7 @@ export default function LowEfficiencyAlert() {
             ? (grouped[machine_number].run_time / grouped[machine_number].total_time) * 100 
             : 0,
         }))
-        .filter(m => m.avg_efficiency < (settingsData.low_efficiency_threshold ?? 80) && m.avg_efficiency > 0)
+        .filter(m => m.avg_efficiency < currentSettings.threshold && m.avg_efficiency > 0)
         .sort((a, b) => a.avg_efficiency - b.avg_efficiency)
 
       setLowEffMachines(machines)
