@@ -41,7 +41,7 @@ export default function LowEfficiencyAlert() {
 
       const { data, error } = await supabase
         .from('efficiency_records')
-        .select('machine_number, total_time, run_time')
+        .select('machine_number, total_minutes, run_minutes')
         .gte('date', threeDaysAgo)
 
       if (error) {
@@ -52,18 +52,18 @@ export default function LowEfficiencyAlert() {
 
       const grouped = data.reduce((acc, r) => {
         if (!acc[r.machine_number]) {
-          acc[r.machine_number] = { total_time: 0, run_time: 0 }
+          acc[r.machine_number] = { total_minutes: 0, run_minutes: 0 }
         }
-        acc[r.machine_number].total_time += r.total_time
-        acc[r.machine_number].run_time += r.run_time
+        acc[r.machine_number].total_minutes += r.total_minutes
+        acc[r.machine_number].run_minutes += r.run_minutes
         return acc
-      }, {} as Record<string, { total_time: number; run_time: number }>)
+      }, {} as Record<string, { total_minutes: number; run_minutes: number }>)
 
       const machines = Object.keys(grouped)
         .map(machine_number => ({
           machine_number,
-          avg_efficiency: grouped[machine_number].total_time > 0 
-            ? (grouped[machine_number].run_time / grouped[machine_number].total_time) * 100 
+          avg_efficiency: grouped[machine_number].total_minutes > 0 
+            ? (grouped[machine_number].run_minutes / grouped[machine_number].total_minutes) * 100 
             : 0,
         }))
         .filter(m => m.avg_efficiency < currentSettings.threshold && m.avg_efficiency > 0)

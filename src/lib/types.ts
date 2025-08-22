@@ -18,8 +18,8 @@ export type Database = {
           machine_number: string
           weft_meter: number
           stops: number
-          total_time: number
-          run_time: number
+          total_minutes: number
+          run_minutes: number
         }
         Insert: {
           id?: string
@@ -29,8 +29,8 @@ export type Database = {
           machine_number: string
           weft_meter: number
           stops: number
-          total_time: number
-          run_time: number
+          total_minutes: number
+          run_minutes: number
         }
         Update: {
           id?: string
@@ -40,8 +40,8 @@ export type Database = {
           machine_number?: string
           weft_meter?: number
           stops?: number
-          total_time?: number
-          run_time?: number
+          total_minutes?: number
+          run_minutes?: number
         }
         Relationships: []
       }

@@ -14,6 +14,7 @@ import type { EfficiencyRecord } from '@/lib/types'
 import { Skeleton } from '../ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { format } from 'date-fns'
+import { minutesToHHMM } from '@/lib/utils'
 
 type CalculatedRecord = EfficiencyRecord & {
   efficiency: number
@@ -23,10 +24,12 @@ type CalculatedRecord = EfficiencyRecord & {
 }
 
 const calculateFields = (r: EfficiencyRecord): CalculatedRecord => {
-  const efficiency = r.total_time > 0 ? (r.run_time / r.total_time) * 100 : 0
-  const diff = r.total_time - r.run_time
-  const hr = r.run_time > 0 ? r.weft_meter / r.run_time : 0
-  const loss_prd = hr * diff
+  const efficiency = r.total_minutes > 0 ? (r.run_minutes / r.total_minutes) * 100 : 0
+  const diff = r.total_minutes - r.run_minutes
+  const runTimeHours = r.run_minutes / 60;
+  const hr = runTimeHours > 0 ? r.weft_meter / runTimeHours : 0
+  const lossPrdHours = diff / 60;
+  const loss_prd = hr * lossPrdHours
   return { ...r, efficiency, diff, hr, loss_prd }
 }
 
@@ -60,9 +63,9 @@ const RecordsTable = ({ records, title }: { records: CalculatedRecord[], title: 
                 <TableCell>{r.machine_number}</TableCell>
                 <TableCell className={r.efficiency > 90 ? 'text-green-600' : r.efficiency > 80 ? 'text-blue-600' : 'text-red-600'}>{r.efficiency.toFixed(2)}</TableCell>
                 <TableCell>{r.stops}</TableCell>
-                <TableCell>{r.total_time.toFixed(2)}</TableCell>
-                <TableCell>{r.run_time.toFixed(2)}</TableCell>
-                <TableCell>{r.diff.toFixed(2)}</TableCell>
+                <TableCell>{minutesToHHMM(r.total_minutes)}</TableCell>
+                <TableCell>{minutesToHHMM(r.run_minutes)}</TableCell>
+                <TableCell>{minutesToHHMM(r.diff)}</TableCell>
                 <TableCell>{r.weft_meter.toFixed(2)}</TableCell>
                 <TableCell>{r.hr.toFixed(2)}</TableCell>
                 <TableCell>{r.loss_prd.toFixed(2)}</TableCell>

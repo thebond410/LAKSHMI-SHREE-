@@ -23,11 +23,11 @@ const ExtractEfficiencyDataInputSchema = z.object({
 export type ExtractEfficiencyDataInput = z.infer<typeof ExtractEfficiencyDataInputSchema>;
 
 const ExtractEfficiencyDataOutputSchema = z.object({
-  weftMeter: z.number().describe('The weft meter reading from the display.'),
-  stops: z.number().describe('The number of stops from the display.'),
-  totalTime: z.number().describe('The total time from the display.'),
-  runTime: z.number().describe('The run time from the display.'),
-  machineNumber: z.string().describe('The machine number from the display.'),
+  weftMeter: z.number().describe('The weft meter reading from the display (Cloth length).'),
+  stops: z.number().describe('The number of stops from the display (All stops).'),
+  totalTime: z.string().describe("The total time from the display in HH:MM format. It's labeled 'Total Time'."),
+  runTime: z.string().describe("The run time from the display in HH:MM format. It's labeled 'Run time len'."),
+  machineNumber: z.string().describe('The machine number from the display, identifiable from the steel plate or the display.'),
 });
 export type ExtractEfficiencyDataOutput = z.infer<typeof ExtractEfficiencyDataOutputSchema>;
 
@@ -41,16 +41,17 @@ const prompt = ai.definePrompt({
   name: 'extractEfficiencyDataPrompt',
   input: {schema: ExtractEfficiencyDataInputSchema},
   output: {schema: ExtractEfficiencyDataOutputSchema},
-  prompt: `You are an expert in extracting data from images of machine displays in a factory setting.
+  prompt: `You are an expert in extracting structured data from images of machine displays in a factory setting. Your task is to be fast and precise.
 
-  Given an image of a machine display, extract the following information:
-  - Weft Meter (Cloth length): A number representing the weft meter reading.
-  - Stops (All stops): A number representing the total number of stops.
-  - Total Time: A number representing the total time the machine has been running.
-  - Run Time (Run time len): A number representing the run time length.
-  - Machine Number: A string representing the machine number, identifiable from the steel plate or the display.
+  Given an image of a machine display, extract the following information. Pay close attention to the labels on the display to correctly identify each value.
+  
+  - Weft Meter (Cloth length): A number.
+  - Stops (All stops): A number.
+  - Total Time: A time value in HH:MM format from the "Total Time" field.
+  - Run Time (Run time len): A time value in HH:MM format from the "Run time len" field.
+  - Machine Number: A string representing the machine number, which may be on a steel plate near the display or on the screen itself.
 
-  Return the extracted data in JSON format.
+  Return ONLY the extracted data in a valid JSON object. Do not include any extra text or explanations.
 
   Here is the image of the machine display:
   {{media url=photoDataUri}}

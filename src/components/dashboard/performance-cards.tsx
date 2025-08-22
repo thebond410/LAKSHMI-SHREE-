@@ -55,7 +55,7 @@ export default function PerformanceCards() {
 
       const { data, error } = await supabase
         .from('efficiency_records')
-        .select('machine_number, date, weft_meter, total_time, run_time')
+        .select('machine_number, date, weft_meter, total_minutes, run_minutes')
         .in('date', [todayStr, yesterdayStr]);
 
       if (error) {
@@ -80,11 +80,11 @@ export default function PerformanceCards() {
         const calcMetrics = (recs: typeof data) => {
           if (recs.length === 0) return { weft: 0, efficiency: 0 };
           const totalWeft = recs.reduce((sum, r) => sum + r.weft_meter, 0);
-          const totalTime = recs.reduce((sum, r) => sum + r.total_time, 0);
-          const runTime = recs.reduce((sum, r) => sum + r.run_time, 0);
+          const totalMinutes = recs.reduce((sum, r) => sum + r.total_minutes, 0);
+          const runMinutes = recs.reduce((sum, r) => sum + r.run_minutes, 0);
           return {
             weft: totalWeft,
-            efficiency: totalTime > 0 ? (runTime / totalTime) * 100 : 0
+            efficiency: totalMinutes > 0 ? (runMinutes / totalMinutes) * 100 : 0
           }
         }
         

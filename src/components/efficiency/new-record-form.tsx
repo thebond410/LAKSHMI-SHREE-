@@ -16,6 +16,12 @@ import { useToast } from "@/hooks/use-toast"
 import { useState, useRef } from "react"
 import { extractEfficiencyData } from "@/ai/flows/extract-efficiency-data"
 
+const timeStringToMinutes = (time: string): number => {
+    const [hours, minutes] = time.split(':').map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return 0;
+    return hours * 60 + minutes;
+};
+
 const formSchema = z.object({
   date: z.date({
     required_error: "A date is required.",
@@ -24,8 +30,8 @@ const formSchema = z.object({
   machine_number: z.string().min(1, "M/C No. is required"),
   weft_meter: z.coerce.number().positive("Must be positive"),
   stops: z.coerce.number().int().min(0),
-  total_time: z.coerce.number().positive("Must be positive"),
-  run_time: z.coerce.number().positive("Must be positive"),
+  total_time: z.string().regex(/^([0-9]+):[0-5][0-9]$/, "Invalid format (HH:MM)"),
+  run_time: z.string().regex(/^([0-9]+):[0-5][0-9]$/, "Invalid format (HH:MM)"),
 })
 
 type NewRecordFormProps = {
@@ -48,8 +54,8 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
       machine_number: "",
       weft_meter: 0,
       stops: 0,
-      total_time: 0,
-      run_time: 0,
+      total_time: "00:00",
+      run_time: "00:00",
     },
   })
 
@@ -57,6 +63,19 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
     setIsSaving(true)
     const [hours, minutes] = values.time.split(':').map(Number);
     const shift = (hours >= 7 && hours < 19) ? 'A' : 'B';
+    
+    const total_minutes = timeStringToMinutes(values.total_time);
+    const run_minutes = timeStringToMinutes(values.run_time);
+
+    if (run_minutes > total_minutes) {
+        toast({
+            variant: "destructive",
+            title: "Invalid Input",
+            description: "Run Time cannot be greater than Total Time.",
+        })
+        setIsSaving(false);
+        return;
+    }
 
     const { error } = await supabase.from("efficiency_records").insert({
       date: format(values.date, "yyyy-MM-dd"),
@@ -64,8 +83,8 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
       machine_number: values.machine_number,
       weft_meter: values.weft_meter,
       stops: values.stops,
-      total_time: values.total_time,
-      run_time: values.run_time,
+      total_minutes,
+      run_minutes,
     })
 
     if (error) {
@@ -182,15 +201,15 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
             )}/>
             <FormField control={form.control} name="total_time" render={({ field }) => (
                 <FormItem className={formItemClass}>
-                    <FormLabel className={formLabelClass}>Total Time (H)</FormLabel>
-                    <FormControl><Input type="number" {...field} className={formInputClass} /></FormControl>
+                    <FormLabel className={formLabelClass}>Total Time (HH:MM)</FormLabel>
+                    <FormControl><Input placeholder="HH:MM" {...field} className={formInputClass} /></FormControl>
                     <FormMessage />
                 </FormItem>
             )}/>
             <FormField control={form.control} name="run_time" render={({ field }) => (
                 <FormItem className={formItemClass}>
-                    <FormLabel className={formLabelClass}>Run Time (H)</FormLabel>
-                    <FormControl><Input type="number" {...field} className={formInputClass} /></FormControl>
+                    <FormLabel className={formLabelClass}>Run Time (HH:MM)</FormLabel>
+                    <FormControl><Input placeholder="HH:MM" {...field} className={formInputClass} /></FormControl>
                     <FormMessage />
                 </FormItem>
             )}/>
