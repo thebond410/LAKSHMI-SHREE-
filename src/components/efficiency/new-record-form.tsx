@@ -19,6 +19,7 @@ import { DatePicker } from "../ui/date-picker"
 import type { EfficiencyRecord } from '@/lib/types'
 
 const timeRegex = /^(?:2[0-3]|[01]?[0-9]):[0-5][0-9]$/; // HH:MM
+const durationRegex = /^\d+:[0-5][0-9]$/; // H...H:MM
 
 const formSchema = z.object({
   date: z.date({
@@ -29,8 +30,8 @@ const formSchema = z.object({
   machine_number: z.string().min(1, "M/C No. is required"),
   weft_meter: z.coerce.number().positive("Must be positive"),
   stops: z.coerce.number().int().min(0),
-  total_time: z.string().regex(timeRegex, "Invalid format (HH:MM)"),
-  run_time: z.string().regex(timeRegex, "Invalid format (HH:MM)"),
+  total_time: z.string().regex(durationRegex, "Invalid format (HH:MM)"),
+  run_time: z.string().regex(durationRegex, "Invalid format (HH:MM)"),
 })
 
 type NewRecordFormProps = {
@@ -176,7 +177,6 @@ export default function NewRecordForm({ onSave, onClose, initialData, currentDat
       toast({
         title: `Record ${initialData ? 'Updated' : 'Saved'}`,
         description: `M/C ${values.machine_number} record has been saved.`,
-        duration: 3000
       })
       onSave()
       if (initialData) {
@@ -208,12 +208,22 @@ export default function NewRecordForm({ onSave, onClose, initialData, currentDat
         }
       } catch (error) {
         console.error(error)
+        toast({
+          variant: "destructive",
+          title: "Scan failed",
+          description: "Could not extract data from the image. Please try again or enter manually.",
+        })
       } finally {
         setIsScanning(false)
       }
     }
     reader.onerror = () => {
         setIsScanning(false)
+        toast({
+          variant: "destructive",
+          title: "File Read Error",
+          description: "Could not read the selected image file.",
+        })
     }
   }
 
