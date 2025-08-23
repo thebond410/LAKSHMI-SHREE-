@@ -14,6 +14,7 @@ export type Database = {
           id: string
           created_at: string
           date: string
+          time: string
           shift: "Day" | "Night"
           machine_number: string
           weft_meter: number
@@ -25,6 +26,7 @@ export type Database = {
           id?: string
           created_at?: string
           date: string
+          time: string
           shift: "Day" | "Night"
           machine_number: string
           weft_meter: number
@@ -36,6 +38,7 @@ export type Database = {
           id?: string
           created_at?: string
           date?: string
+          time?: string
           shift?: "Day" | "Night"
           machine_number?: string
           weft_meter?: number

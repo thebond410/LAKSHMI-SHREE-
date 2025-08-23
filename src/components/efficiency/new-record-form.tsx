@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2, Camera, Upload } from "lucide-react"
+import { Loader2, Camera, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -39,10 +39,22 @@ type NewRecordFormProps = {
 const timeStringToSeconds = (time: string): number => {
     if (!time) return 0;
     const parts = time.split(':').map(Number);
-    if (parts.length < 2 || parts.some(isNaN)) return 0;
+    if (parts.some(isNaN)) return 0;
     const [h=0, m=0, s=0] = parts;
     return h * 3600 + m * 60 + s;
 }
+
+const getDefaultValues = () => ({
+    date: new Date(),
+    time: format(new Date(), "HH:mm"),
+    shift: (new Date().getHours() >= 7 && new Date().getHours() < 19) ? 'Day' : 'Night',
+    machine_number: "",
+    weft_meter: 0,
+    stops: 0,
+    total_time: "00:00",
+    run_time: "00:00",
+})
+
 
 export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
   const { toast } = useToast()
@@ -53,20 +65,10 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      date: new Date(),
-      time: format(new Date(), "HH:mm"),
-      shift: (new Date().getHours() >= 7 && new Date().getHours() < 19) ? 'Day' : 'Night',
-      machine_number: "",
-      weft_meter: 0,
-      stops: 0,
-      total_time: "00:00",
-      run_time: "00:00",
-    },
+    defaultValues: getDefaultValues(),
   })
   
   const formatTimeToSeconds = (timeStr: string): string => {
-    // Converts HH:MM:SS to HH:MM if needed, or handles HH:MM
     if (!timeStr) return "00:00";
     const parts = timeStr.split(":");
     if (parts.length >= 2) {
@@ -90,6 +92,7 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
 
     const { error } = await supabase.from("efficiency_records").insert({
       date: format(values.date, "yyyy-MM-dd"),
+      time: `${values.time}:00`,
       shift: values.shift,
       machine_number: values.machine_number,
       weft_meter: values.weft_meter,
@@ -114,6 +117,7 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
         description: `Efficiency record for M/C ${values.machine_number} has been saved.`,
       })
       onSave()
+      form.reset(getDefaultValues())
     }
     setIsSaving(false)
   }
@@ -129,7 +133,7 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
         const result = await extractEfficiencyData({ photoDataUri })
         
         if (result) {
-          form.setValue("time", result.time)
+          form.setValue("time", formatTimeToSeconds(result.time))
           form.setValue("machine_number", result.machineNumber)
           form.setValue("weft_meter", result.weftMeter)
           form.setValue("stops", result.stops)
@@ -250,10 +254,10 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
           <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={(e) => e.target.files && handleImageUpload(e.target.files[0])} className="hidden" />
           <input type="file" accept="image/*" ref={fileInputRef} onChange={(e) => e.target.files && handleImageUpload(e.target.files[0])} className="hidden" />
           
-          <Button type="button" size="sm" onClick={() => cameraInputRef.current?.click()} disabled={isScanning} className="text-xs h-6 px-2 bg-blue-500 hover:bg-blue-600 text-white">
+          <Button type="button" size="sm" onClick={() => cameraInputRef.current?.click()} disabled={isScanning} className="text-xs h-6 px-2 bg-blue-500 hover:bg-blue-600 text-white gap-1">
             {isScanning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />} Scan
           </Button>
-          <Button type="button" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isScanning} className="text-xs h-6 px-2 bg-green-500 hover:bg-green-600 text-white">
+          <Button type="button" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isScanning} className="text-xs h-6 px-2 bg-green-500 hover:bg-green-600 text-white gap-1">
              {isScanning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />} Upload
           </Button>
 

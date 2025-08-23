@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS "efficiency_records" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
   "date" date NOT NULL,
+  "time" time NOT NULL,
   "shift" shift_type NOT NULL, -- 'Day' or 'Night'
   "machine_number" text NOT NULL,
   "weft_meter" numeric(10, 2) NOT NULL,
@@ -49,6 +50,7 @@ CREATE TABLE IF NOT EXISTS "settings" (
 -- create policy "Public access" on efficiency_records for select using (true);
 -- create policy "Public access" on efficiency_records for insert with check (true);
 -- create policy "Public access" on efficiency_records for update using (true);
+-- create policy "Public access" on efficiency_records for delete using (true);
 
 
 -- alter table settings enable row level security;
