@@ -71,7 +71,7 @@ export default function PerformanceCards() {
         .from('settings')
         .select('total_machines')
         .eq('id', 1)
-        .single();
+        .maybeSingle();
       
       if (settingsError) {
           console.error("Error fetching settings for total machines:", settingsError.message);
