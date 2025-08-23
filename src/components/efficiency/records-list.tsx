@@ -14,7 +14,7 @@ import type { EfficiencyRecord } from '@/lib/types'
 import { Skeleton } from '../ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { format } from 'date-fns'
-import { timeStringToSeconds, secondsToHHMMSS } from '@/lib/utils'
+import { timeStringToSeconds, secondsToHHMM } from '@/lib/utils'
 
 type CalculatedRecord = EfficiencyRecord & {
   efficiency: number
@@ -37,7 +37,7 @@ const calculateFields = (r: EfficiencyRecord): CalculatedRecord => {
   return { ...r, efficiency, diff_seconds, hr, loss_prd, total_seconds, run_seconds }
 }
 
-const RecordsTable = ({ records, title }: { records: CalculatedRecord[], title: string }) => {
+const RecordsTable = ({ records, title, date }: { records: CalculatedRecord[], title: string, date: string }) => {
   const totals = useMemo(() => {
     return records.reduce((acc, r) => {
       acc.weft += r.weft_meter
@@ -49,13 +49,13 @@ const RecordsTable = ({ records, title }: { records: CalculatedRecord[], title: 
   return (
     <Card className="m-0 p-0">
       <CardHeader className="p-1">
-        <CardTitle className="text-sm">{title} - {format(new Date(), 'dd/MM/yyyy')}</CardTitle>
+        <CardTitle className="text-sm">{title} - {format(new Date(date), 'dd/MM/yyyy')}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <Table className="text-xs">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              {['Date', 'M/C', 'Effi(%)', 'Stops', 'Tot.T', 'Run.T', 'Diff', 'Weft', 'H/R', 'Loss'].map(h => 
+              {['M/C', 'Effi(%)', 'Stops', 'Tot.T', 'Run.T', 'Diff', 'Weft', 'H/R', 'Loss'].map(h => 
                 <TableHead key={h} className="h-auto p-1 text-center">{h}</TableHead>
               )}
             </TableRow>
@@ -63,13 +63,12 @@ const RecordsTable = ({ records, title }: { records: CalculatedRecord[], title: 
           <TableBody>
             {records.map(r => (
               <TableRow key={r.id} className="text-center [&_td]:p-1">
-                <TableCell>{format(new Date(r.date), 'dd/MM')}</TableCell>
                 <TableCell>{r.machine_number}</TableCell>
                 <TableCell className={r.efficiency > 90 ? 'text-green-600' : r.efficiency > 80 ? 'text-blue-600' : 'text-red-600'}>{r.efficiency.toFixed(2)}</TableCell>
                 <TableCell>{r.stops}</TableCell>
-                <TableCell>{r.total_time}</TableCell>
-                <TableCell>{r.run_time}</TableCell>
-                <TableCell>{secondsToHHMMSS(r.diff_seconds)}</TableCell>
+                <TableCell>{secondsToHHMM(r.total_seconds)}</TableCell>
+                <TableCell>{secondsToHHMM(r.run_seconds)}</TableCell>
+                <TableCell>{secondsToHHMM(r.diff_seconds)}</TableCell>
                 <TableCell>{r.weft_meter.toFixed(2)}</TableCell>
                 <TableCell>{r.hr.toFixed(2)}</TableCell>
                 <TableCell>{r.loss_prd.toFixed(2)}</TableCell>
@@ -78,7 +77,7 @@ const RecordsTable = ({ records, title }: { records: CalculatedRecord[], title: 
           </TableBody>
           <TableFooter>
              <TableRow className="text-center font-extrabold [&_td]:p-1">
-                <TableCell colSpan={7}>Total</TableCell>
+                <TableCell colSpan={6}>Total</TableCell>
                 <TableCell>{totals.weft.toFixed(2)}</TableCell>
                 <TableCell></TableCell>
                 <TableCell>{totals.loss_prd.toFixed(2)}</TableCell>
@@ -91,18 +90,17 @@ const RecordsTable = ({ records, title }: { records: CalculatedRecord[], title: 
 }
 
 
-export default function RecordsList() {
+export default function RecordsList({ date }: { date: string }) {
   const [records, setRecords] = useState<CalculatedRecord[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchRecords = async () => {
       setLoading(true)
-      const todayStr = format(new Date(), 'yyyy-MM-dd')
       const { data, error } = await supabase
         .from('efficiency_records')
         .select('*')
-        .eq('date', todayStr)
+        .eq('date', date)
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -116,7 +114,7 @@ export default function RecordsList() {
     fetchRecords()
 
     const channel = supabase.channel('efficiency_records_list')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'efficiency_records' },
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'efficiency_records', filter: `date=eq.${date}` },
         () => fetchRecords()
       )
       .subscribe()
@@ -124,7 +122,7 @@ export default function RecordsList() {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [])
+  }, [date])
 
   const dayRecords = useMemo(() => records.filter(r => r.shift === 'Day'), [records])
   const nightRecords = useMemo(() => records.filter(r => r.shift === 'Night'), [records])
@@ -135,8 +133,8 @@ export default function RecordsList() {
 
   return (
     <div className="space-y-2">
-      <RecordsTable records={dayRecords} title="Day Shift" />
-      <RecordsTable records={nightRecords} title="Night Shift" />
+      <RecordsTable records={dayRecords} title="Day Shift" date={date} />
+      <RecordsTable records={nightRecords} title="Night Shift" date={date} />
     </div>
   )
 }

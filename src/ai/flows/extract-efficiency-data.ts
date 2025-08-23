@@ -23,6 +23,7 @@ const ExtractEfficiencyDataInputSchema = z.object({
 export type ExtractEfficiencyDataInput = z.infer<typeof ExtractEfficiencyDataInputSchema>;
 
 const ExtractEfficiencyDataOutputSchema = z.object({
+  time: z.string().describe("The time from the display, located next to the 'XINLIAO' brand name. Format HH:MM."),
   weftMeter: z.number().describe('The weft meter reading from the display (Cloth length).'),
   stops: z.number().describe('The number of stops from the display (All stops).'),
   totalTime: z.string().describe("The total time from the display in HH:MM format. It's labeled 'Total Time'."),
@@ -41,17 +42,18 @@ const prompt = ai.definePrompt({
   name: 'extractEfficiencyDataPrompt',
   input: {schema: ExtractEfficiencyDataInputSchema},
   output: {schema: ExtractEfficiencyDataOutputSchema},
-  prompt: `You are an expert in extracting structured data from images of machine displays in a factory setting. Your task is to be fast and precise.
+  prompt: `You are an expert in extracting structured data from images of machine displays in a factory setting. Your task is to be extremely fast and precise.
 
   Given an image of a machine display, extract the following information. Pay close attention to the labels on the display to correctly identify each value.
   
+  - Time: The current time, which is usually displayed at the top next to the brand name "XINLIAO". Return in HH:MM format.
   - Weft Meter (Cloth length): A number.
   - Stops (All stops): A number.
   - Total Time: A time value in HH:MM format from the "Total Time" field.
   - Run Time (Run time len): A time value in HH:MM format from the "Run time len" field.
   - Machine Number: A string representing the machine number, which may be on a steel plate near the display or on the screen itself.
 
-  Return ONLY the extracted data in a valid JSON object. Do not include any extra text or explanations.
+  Return ONLY the extracted data in a valid JSON object. Do not include any extra text or explanations. Be very precise and fast.
 
   Here is the image of the machine display:
   {{media url=photoDataUri}}

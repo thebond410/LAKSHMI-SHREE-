@@ -4,31 +4,31 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
-import { CalendarIcon, Loader2 } from "lucide-react"
+import { CalendarIcon, Loader2, Camera, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
 import { useState, useRef } from "react"
 import { extractEfficiencyData } from "@/ai/flows/extract-efficiency-data"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DatePicker } from "../ui/date-picker"
 
-const timeWithSecondsRegex = /^(?:2[0-3]|[01]?[0-9]):[0-5][0-9]:[0-5][0-9]$/; // HH:MM:SS
-const timeWithoutSecondsRegex = /^(?:2[0-3]|[01]?[0-9]):[0-5][0-9]$/; // HH:MM
+const timeRegex = /^(?:2[0-3]|[01]?[0-9]):[0-5][0-9]$/; // HH:MM
 
 const formSchema = z.object({
   date: z.date({
     required_error: "A date is required.",
   }),
-  time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)"),
+  time: z.string().regex(timeRegex, "Invalid time (HH:MM)"),
+  shift: z.enum(["Day", "Night"], { required_error: "Shift is required." }),
   machine_number: z.string().min(1, "M/C No. is required"),
   weft_meter: z.coerce.number().positive("Must be positive"),
   stops: z.coerce.number().int().min(0),
-  total_time: z.string().regex(/^([0-9]+):[0-5][0-9]:[0-5][0-9]$/, "Invalid format (HH:MM:SS)"),
-  run_time: z.string().regex(/^([0-9]+):[0-5][0-9]:[0-5][0-9]$/, "Invalid format (HH:MM:SS)"),
+  total_time: z.string().regex(timeRegex, "Invalid format (HH:MM)"),
+  run_time: z.string().regex(timeRegex, "Invalid format (HH:MM)"),
 })
 
 type NewRecordFormProps = {
@@ -39,7 +39,7 @@ type NewRecordFormProps = {
 const timeStringToSeconds = (time: string): number => {
     if (!time) return 0;
     const parts = time.split(':').map(Number);
-    if (parts.some(isNaN)) return 0;
+    if (parts.length < 2 || parts.some(isNaN)) return 0;
     const [h=0, m=0, s=0] = parts;
     return h * 3600 + m * 60 + s;
 }
@@ -56,25 +56,27 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
     defaultValues: {
       date: new Date(),
       time: format(new Date(), "HH:mm"),
+      shift: (new Date().getHours() >= 7 && new Date().getHours() < 19) ? 'Day' : 'Night',
       machine_number: "",
       weft_meter: 0,
       stops: 0,
-      total_time: "00:00:00",
-      run_time: "00:00:00",
+      total_time: "00:00",
+      run_time: "00:00",
     },
   })
   
   const formatTimeToSeconds = (timeStr: string): string => {
-    if (timeWithSecondsRegex.test(timeStr)) return timeStr;
-    if (timeWithoutSecondsRegex.test(timeStr)) return `${timeStr}:00`;
-    return "00:00:00";
+    // Converts HH:MM:SS to HH:MM if needed, or handles HH:MM
+    if (!timeStr) return "00:00";
+    const parts = timeStr.split(":");
+    if (parts.length >= 2) {
+      return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+    }
+    return "00:00";
   }
-
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSaving(true)
-    const [hours] = values.time.split(':').map(Number);
-    const shift = (hours >= 7 && hours < 19) ? 'Day' : 'Night';
     
     if (timeStringToSeconds(values.run_time) > timeStringToSeconds(values.total_time)) {
         toast({
@@ -88,12 +90,16 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
 
     const { error } = await supabase.from("efficiency_records").insert({
       date: format(values.date, "yyyy-MM-dd"),
-      shift: shift,
+      shift: values.shift,
       machine_number: values.machine_number,
       weft_meter: values.weft_meter,
       stops: values.stops,
-      total_time: values.total_time,
-      run_time: values.run_time,
+      total_time: `${values.total_time}:00`,
+      run_time: `${values.run_time}:00`,
+      created_at: new Date(values.date.setHours(
+        parseInt(values.time.split(':')[0]),
+        parseInt(values.time.split(':')[1])
+      )).toISOString(),
     })
 
     if (error) {
@@ -123,6 +129,7 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
         const result = await extractEfficiencyData({ photoDataUri })
         
         if (result) {
+          form.setValue("time", result.time)
           form.setValue("machine_number", result.machineNumber)
           form.setValue("weft_meter", result.weftMeter)
           form.setValue("stops", result.stops)
@@ -151,31 +158,16 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-1">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+         {/* Row 1 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {/* Inputs here */}
             <FormField
               control={form.control}
               name="date"
               render={({ field }) => (
                 <FormItem className={cn("flex flex-col", formItemClass)}>
                   <FormLabel className={formLabelClass}>Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn("w-full pl-2 text-left font-normal", !field.value && "text-muted-foreground", formInputClass)}
-                        >
-                          {field.value ? format(field.value, "dd/MM/yy") : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-3 w-3 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                    </PopoverContent>
-                  </Popover>
+                   <DatePicker date={field.value} onDateChange={field.onChange} buttonClassName={formInputClass} />
                   <FormMessage />
                 </FormItem>
               )}
@@ -187,13 +179,41 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
                     <FormMessage />
                 </FormItem>
             )}/>
-            <FormField control={form.control} name="machine_number" render={({ field }) => (
-                <FormItem className={formItemClass}>
-                    <FormLabel className={formLabelClass}>M/C No.</FormLabel>
-                    <FormControl><Input {...field} className={formInputClass} /></FormControl>
-                    <FormMessage />
-                </FormItem>
-            )}/>
+             <FormField
+                control={form.control}
+                name="machine_number"
+                render={({ field }) => (
+                    <FormItem className={formItemClass}>
+                        <FormLabel className={formLabelClass}>M/C No.</FormLabel>
+                        <FormControl><Input {...field} className={formInputClass} /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+        </div>
+        {/* Row 2 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+             <FormField
+                control={form.control}
+                name="shift"
+                render={({ field }) => (
+                    <FormItem className={formItemClass}>
+                        <FormLabel className={formLabelClass}>Shift</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger className={formInputClass}>
+                                    <SelectValue placeholder="Select shift" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="Day">Day</SelectItem>
+                                <SelectItem value="Night">Night</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
              <FormField control={form.control} name="weft_meter" render={({ field }) => (
                 <FormItem className={formItemClass}>
                     <FormLabel className={formLabelClass}>Weft Meter</FormLabel>
@@ -208,17 +228,20 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
                     <FormMessage />
                 </FormItem>
             )}/>
+        </div>
+         {/* Row 3 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <FormField control={form.control} name="total_time" render={({ field }) => (
                 <FormItem className={formItemClass}>
-                    <FormLabel className={formLabelClass}>Total Time (HH:MM:SS)</FormLabel>
-                    <FormControl><Input placeholder="HH:MM:SS" {...field} className={formInputClass} /></FormControl>
+                    <FormLabel className={formLabelClass}>Total Time (HH:MM)</FormLabel>
+                    <FormControl><Input placeholder="HH:MM" {...field} className={formInputClass} /></FormControl>
                     <FormMessage />
                 </FormItem>
             )}/>
             <FormField control={form.control} name="run_time" render={({ field }) => (
                 <FormItem className={formItemClass}>
-                    <FormLabel className={formLabelClass}>Run Time (HH:MM:SS)</FormLabel>
-                    <FormControl><Input placeholder="HH:MM:SS" {...field} className={formInputClass} /></FormControl>
+                    <FormLabel className={formLabelClass}>Run Time (HH:MM)</FormLabel>
+                    <FormControl><Input placeholder="HH:MM" {...field} className={formInputClass} /></FormControl>
                     <FormMessage />
                 </FormItem>
             )}/>
@@ -227,11 +250,11 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
           <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={(e) => e.target.files && handleImageUpload(e.target.files[0])} className="hidden" />
           <input type="file" accept="image/*" ref={fileInputRef} onChange={(e) => e.target.files && handleImageUpload(e.target.files[0])} className="hidden" />
           
-          <Button type="button" size="sm" variant="outline" onClick={() => cameraInputRef.current?.click()} disabled={isScanning} className="text-xs h-6 px-2">
-            {isScanning ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null} Scan
+          <Button type="button" size="sm" onClick={() => cameraInputRef.current?.click()} disabled={isScanning} className="text-xs h-6 px-2 bg-blue-500 hover:bg-blue-600 text-white">
+            {isScanning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />} Scan
           </Button>
-          <Button type="button" size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isScanning} className="text-xs h-6 px-2">
-             {isScanning ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null} Upload
+          <Button type="button" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isScanning} className="text-xs h-6 px-2 bg-green-500 hover:bg-green-600 text-white">
+             {isScanning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />} Upload
           </Button>
 
           <div className="flex-grow" />
