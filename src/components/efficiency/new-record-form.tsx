@@ -80,6 +80,36 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSaving(true)
     
+    // Check for duplicate record
+    const { data: existingRecord, error: fetchError } = await supabase
+      .from("efficiency_records")
+      .select('id')
+      .eq('date', format(values.date, "yyyy-MM-dd"))
+      .eq('shift', values.shift)
+      .eq('machine_number', values.machine_number)
+      .maybeSingle();
+
+    if (fetchError) {
+      toast({
+        variant: "destructive",
+        title: "Error checking for duplicates",
+        description: fetchError.message,
+      });
+      setIsSaving(false);
+      return;
+    }
+
+    if (existingRecord) {
+      toast({
+        variant: "destructive",
+        title: "Duplicate Record",
+        description: `A record for M/C ${values.machine_number} on this date and shift already exists.`,
+      });
+      setIsSaving(false);
+      return;
+    }
+
+
     if (timeStringToSeconds(values.run_time) > timeStringToSeconds(values.total_time)) {
         toast({
             variant: "destructive",

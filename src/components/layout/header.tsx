@@ -21,7 +21,7 @@ export default function Header() {
       <div className="container flex h-auto max-w-full items-center justify-between p-1">
         <div className="flex items-center gap-2">
           <Link href="/dashboard" className="flex items-center gap-2 mr-2">
-            <span className="font-extrabold text-base">Manoj Patel</span>
+            <span className="font-extrabold text-base text-primary">Manoj Patel</span>
           </Link>
           <nav className="flex items-center gap-1">
             <TooltipProvider delayDuration={0}>
@@ -31,15 +31,15 @@ export default function Header() {
                     <Link
                       href={item.href}
                       className={cn(
-                        'flex items-center justify-center rounded-md p-1.5 transition-colors hover:bg-accent/50',
-                        pathname.startsWith(item.href) ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
+                        'flex items-center justify-center rounded-md p-1.5 transition-colors hover:bg-primary/10 hover:text-primary',
+                        pathname.startsWith(item.href) ? 'bg-primary/10 text-primary' : 'text-muted-foreground'
                       )}
                     >
                       <item.icon className="h-4 w-4" />
                       <span className="sr-only">{item.label}</span>
                     </Link>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="p-1 text-xs">
+                  <TooltipContent side="bottom" className="p-1 text-xs bg-primary text-primary-foreground">
                     {item.label}
                   </TooltipContent>
                 </Tooltip>
