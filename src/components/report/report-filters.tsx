@@ -16,8 +16,8 @@ type ReportFiltersProps = {
 
 export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
   const [date, setDate] = useState<DateRange | undefined>()
-  const [machine, setMachine] = useState<string>('')
-  const [shift, setShift] = useState<string>('')
+  const [machine, setMachine] = useState<string>('all')
+  const [shift, setShift] = useState<string>('all')
   const [machines, setMachines] = useState<string[]>([])
 
   useEffect(() => {
@@ -35,7 +35,11 @@ export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
   }, [])
 
   useEffect(() => {
-    onFilterChange({ dateRange: date, machine, shift })
+    onFilterChange({ 
+        dateRange: date, 
+        machine: machine === 'all' ? undefined : machine, 
+        shift: shift === 'all' ? undefined : shift 
+    })
   }, [date, machine, shift, onFilterChange])
 
   return (
@@ -79,7 +83,7 @@ export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
           <SelectValue placeholder="M/C" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All M/C</SelectItem>
+          <SelectItem value="all">All M/C</SelectItem>
           {machines.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
         </SelectContent>
       </Select>
@@ -89,7 +93,7 @@ export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
           <SelectValue placeholder="Shift" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All Shifts</SelectItem>
+          <SelectItem value="all">All Shifts</SelectItem>
           <SelectItem value="Day">Day</SelectItem>
           <SelectItem value="Night">Night</SelectItem>
         </SelectContent>
