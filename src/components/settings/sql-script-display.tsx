@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS "efficiency_records" (
   "machine_number" text NOT NULL,
   "weft_meter" numeric(10, 2) NOT NULL,
   "stops" integer NOT NULL,
-  "total_time" time NOT NULL, -- Format 'HH24:MI:SS'
-  "run_time" time NOT NULL -- Format 'HH24:MI:SS'
+  "total_time" text NOT NULL, -- Format 'HH:MM'
+  "run_time" text NOT NULL -- Format 'HH:MM'
 );
 
 -- Table for storing application settings
@@ -42,30 +42,41 @@ CREATE TABLE IF NOT EXISTS "settings" (
   "whatsapp_message_template" text
 );
 
--- Enable Realtime for tables
--- Make sure to do this in your Supabase dashboard under Database > Replication
--- for both efficiency_records and settings tables.
+-- =================================================================
+-- RLS POLICIES - REQUIRED FOR APP TO WORK
+-- Run these queries in your Supabase SQL editor to allow the app
+-- to read, write, update, and delete data.
+-- =================================================================
 
--- RLS Policies (Example - adjust as needed if you add authentication)
--- alter table efficiency_records enable row level security;
--- create policy "Public access" on efficiency_records for select using (true);
--- create policy "Public access" on efficiency_records for insert with check (true);
--- create policy "Public access" on efficiency_records for update using (true);
--- create policy "Public access" on efficiency_records for delete using (true);
+-- 1. Enable RLS for the tables
+alter table "efficiency_records" enable row level security;
+alter table "settings" enable row level security;
 
+-- 2. Create policies to allow public access
+-- These policies allow anyone with the anon key to perform actions.
 
--- alter table settings enable row level security;
--- create policy "Public access" on settings for select using (true);
--- create policy "Public access" on settings for update using (true);
+-- Policies for efficiency_records
+drop policy if exists "Public access for all actions" on "efficiency_records";
+create policy "Public access for all actions" on "efficiency_records"
+for all -- covers SELECT, INSERT, UPDATE, DELETE
+using (true)
+with check (true);
+
+-- Policies for settings
+drop policy if exists "Public access for all actions" on "settings";
+create policy "Public access for all actions" on "settings"
+for all -- covers SELECT, INSERT, UPDATE, DELETE
+using (true)
+with check (true);
 `.trim()
 
 export default function SqlScriptDisplay() {
   return (
     <Card className="m-0 mt-2 p-0">
       <CardHeader className="p-1">
-        <CardTitle className="text-sm">Database Schema</CardTitle>
+        <CardTitle className="text-sm">Database Schema & Policies</CardTitle>
         <CardDescription className="text-xs">
-          This is the SQL script used to set up the database. Use this as a reference.
+          This is the SQL script used to set up the database and required policies. Copy and run the RLS policies in your Supabase SQL Editor.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-1">
