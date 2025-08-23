@@ -1,20 +1,38 @@
 
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import NewRecordForm from '@/components/efficiency/new-record-form'
 import RecordsList from '@/components/efficiency/records-list'
 import { PlusCircle, Calendar as CalendarIcon } from 'lucide-react'
 import { DatePicker } from '@/components/ui/date-picker'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import type { EfficiencyRecord } from '@/lib/types'
+
+const getInitialDate = (): Date => {
+  if (typeof window === 'undefined') {
+    return new Date();
+  }
+  const storedDate = localStorage.getItem('efficiencyDate');
+  if (storedDate) {
+    const date = parseISO(storedDate);
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+  }
+  return new Date();
+}
 
 export default function EfficiencyPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   // key to force re-render/re-fetch of records list after a save
   const [recordsVersion, setRecordsVersion] = useState(0)
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+  const [selectedDate, setSelectedDate] = useState<Date>(getInitialDate())
   const [editingRecord, setEditingRecord] = useState<EfficiencyRecord | null>(null)
+  
+  useEffect(() => {
+    localStorage.setItem('efficiencyDate', selectedDate.toISOString());
+  }, [selectedDate]);
 
   const handleSave = () => {
     // Increment version to trigger re-fetch in RecordsList
@@ -39,6 +57,12 @@ export default function EfficiencyPage() {
     setEditingRecord(null);
     setIsFormOpen(false);
   }
+  
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+        setSelectedDate(date);
+    }
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh_-_2.5rem)] overflow-x-hidden">
@@ -48,7 +72,7 @@ export default function EfficiencyPage() {
               <PlusCircle className="h-3 w-3" />
               {isFormOpen && !editingRecord ? 'Close Form' : 'New Record'}
             </Button>
-            <DatePicker date={selectedDate} onDateChange={setSelectedDate} />
+            <DatePicker date={selectedDate} onDateChange={handleDateChange} />
         </div>
       </div>
       
@@ -58,6 +82,7 @@ export default function EfficiencyPage() {
             onSave={handleSave} 
             onClose={handleCloseForm} 
             initialData={editingRecord}
+            currentDate={selectedDate}
           />
         </div>
       )}
@@ -68,5 +93,3 @@ export default function EfficiencyPage() {
     </div>
   )
 }
-
-    

@@ -1,3 +1,4 @@
+
 'use client'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -130,7 +131,7 @@ const RecordsTable = ({ records, title, date, settings, onDelete, onEdit, onSort
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 {headers.map(h => 
-                  <TableHead key={h.key} className="h-auto p-0.5 text-center cursor-pointer whitespace-nowrap" onClick={() => h.key !== 'actions' && onSort(h.key as keyof CalculatedRecord)}>
+                  <TableHead key={h.key} className="h-auto p-[3px] text-center cursor-pointer whitespace-nowrap" onClick={() => h.key !== 'actions' && onSort(h.key as keyof CalculatedRecord)}>
                       {h.label}
                   </TableHead>
                 )}
@@ -138,7 +139,7 @@ const RecordsTable = ({ records, title, date, settings, onDelete, onEdit, onSort
             </TableHeader>
             <TableBody>
               {sortedRecords.map(r => (
-                <TableRow key={r.id} className="text-center [&_td]:p-0.5 [&_td]:whitespace-nowrap">
+                <TableRow key={r.id} className="text-center [&_td]:p-[3px] [&_td]:whitespace-nowrap">
                   <TableCell className="font-extrabold">{r.machine_number}</TableCell>
                   <TableCell>{r.time}</TableCell>
                   <TableCell className={`font-extrabold ${r.efficiency > 90 ? 'text-green-600' : r.efficiency > 80 ? 'text-blue-600' : 'text-red-600'}`}>{r.efficiency.toFixed(2)}</TableCell>
@@ -231,7 +232,10 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
 
     const channel = supabase.channel('efficiency_records_list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'efficiency_records', filter: `date=eq.${date}` },
-        () => fetchRecords()
+        (payload) => {
+            // Re-fetch on all changes for simplicity
+            fetchRecords();
+        }
       )
       .subscribe()
 
@@ -247,7 +251,8 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
         toast({ variant: 'destructive', title: 'Error deleting record', description: error.message })
     } else {
         toast({ title: 'Record deleted successfully' })
-        fetchRecords() // Re-fetch data after deletion
+        // Optimistically remove from UI
+        setRecords(prevRecords => prevRecords.filter(r => r.id !== id));
     }
   }
 

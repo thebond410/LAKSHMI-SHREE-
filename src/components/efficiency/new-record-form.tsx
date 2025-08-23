@@ -37,6 +37,7 @@ type NewRecordFormProps = {
   onSave: () => void
   onClose: () => void
   initialData?: EfficiencyRecord | null
+  currentDate?: Date;
 }
 
 const timeStringToMinutes = (time: string): number => {
@@ -73,7 +74,7 @@ const getDefaultValues = (initialData?: EfficiencyRecord | null, currentDate?: D
   }
 }
 
-export default function NewRecordForm({ onSave, onClose, initialData }: NewRecordFormProps) {
+export default function NewRecordForm({ onSave, onClose, initialData, currentDate }: NewRecordFormProps) {
   const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
@@ -82,12 +83,12 @@ export default function NewRecordForm({ onSave, onClose, initialData }: NewRecor
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: getDefaultValues(initialData),
+    defaultValues: getDefaultValues(initialData, currentDate),
   })
 
   useEffect(() => {
-    form.reset(getDefaultValues(initialData))
-  }, [initialData, form])
+    form.reset(getDefaultValues(initialData, currentDate))
+  }, [initialData, currentDate, form])
   
   const formatTimeToSeconds = (timeStr: string): string => {
     if (!timeStr) return "00:00";
@@ -214,12 +215,22 @@ export default function NewRecordForm({ onSave, onClose, initialData }: NewRecor
         }
       } catch (error) {
         console.error(error)
+        toast({
+          variant: "destructive",
+          title: "Scan Failed",
+          description: "Could not extract data from the image.",
+        })
       } finally {
         setIsScanning(false)
       }
     }
     reader.onerror = () => {
         setIsScanning(false)
+        toast({
+          variant: "destructive",
+          title: "File Error",
+          description: "Could not read the selected file.",
+        })
     }
   }
 
