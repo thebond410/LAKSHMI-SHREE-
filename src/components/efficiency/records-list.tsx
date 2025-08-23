@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import {
   Table,
@@ -42,8 +42,50 @@ const calculateFields = (r: EfficiencyRecord): CalculatedRecord => {
   return { ...r, efficiency, diff_minutes, hr, loss_prd, run_minutes, total_minutes }
 }
 
-const RecordsTable = ({ records, title, date, settings, onDelete, onEdit }: { records: CalculatedRecord[], title: string, date: string, settings: Settings | null, onDelete: (id: string) => void, onEdit: (record: EfficiencyRecord) => void }) => {
+const RecordsTable = ({ records, title, date, settings, onDelete, onEdit, onSort, sortDescriptor }: { records: CalculatedRecord[], title: string, date: string, settings: Settings | null, onDelete: (id: string) => void, onEdit: (record: EfficiencyRecord) => void, onSort: (key: keyof CalculatedRecord) => void, sortDescriptor: {key: keyof CalculatedRecord, direction: 'asc' | 'desc'} | null }) => {
   const { toast } = useToast()
+
+  const headers: { key: keyof CalculatedRecord | 'actions', label: string }[] = [
+    { key: 'machine_number', label: 'M/C' },
+    { key: 'time', label: 'Time' },
+    { key: 'efficiency', label: 'Effi(%)' },
+    { key: 'stops', label: 'Stops' },
+    { key: 'total_time', label: 'Tot.T' },
+    { key: 'run_time', label: 'Run.T' },
+    { key: 'diff_minutes', label: 'Diff' },
+    { key: 'weft_meter', label: 'Weft' },
+    { key: 'hr', label: 'H/R' },
+    { key: 'loss_prd', label: 'Loss' },
+    { key: 'actions', label: 'Actions' },
+  ]
+  
+  const sortedRecords = useMemo(() => {
+    if (!sortDescriptor || !sortDescriptor.key) return records;
+    const { key, direction } = sortDescriptor;
+
+    return [...records].sort((a, b) => {
+      let aVal = a[key];
+      let bVal = b[key];
+
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        if (key === 'time' || key === 'total_time' || key === 'run_time') {
+           const timeA = timeStringToSeconds(aVal)
+           const timeB = timeStringToSeconds(bVal)
+           return direction === 'asc' ? timeA - timeB : timeB - timeA
+        }
+        if (key === 'machine_number') {
+            return direction === 'asc' ? parseInt(aVal) - parseInt(bVal) : parseInt(bVal) - parseInt(aVal);
+        }
+        return direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return direction === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      
+      return 0;
+    });
+  }, [records, sortDescriptor]);
 
   const totals = useMemo(() => {
     return records.reduce((acc, r) => {
@@ -70,34 +112,36 @@ const RecordsTable = ({ records, title, date, settings, onDelete, onEdit }: { re
     const url = `https://wa.me/${settings.whatsapp_number}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   }
-
+  
   return (
     <Card className="m-0 p-0">
       <CardHeader className="p-1">
         <CardTitle className="text-sm">{title} - {format(new Date(date.replace(/-/g, '/')), 'dd/MM/yyyy')}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <Table className="text-xs">
+        <Table className="text-[11px] font-bold">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              {['M/C', 'Time', 'Effi(%)', 'Stops', 'Tot.T', 'Run.T', 'Diff', 'Weft', 'H/R', 'Loss', 'Actions'].map(h => 
-                <TableHead key={h} className="h-auto p-1 text-center">{h}</TableHead>
+              {headers.map(h => 
+                <TableHead key={h.key} className="h-auto p-0.5 text-center cursor-pointer" onClick={() => h.key !== 'actions' && onSort(h.key as keyof CalculatedRecord)}>
+                    {h.label}
+                </TableHead>
               )}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {records.map(r => (
-              <TableRow key={r.id} className="text-center [&_td]:p-1">
-                <TableCell className="font-bold">{r.machine_number}</TableCell>
-                <TableCell>{format(parseISO(r.created_at), "HH:mm")}</TableCell>
-                <TableCell className={`font-bold ${r.efficiency > 90 ? 'text-green-600' : r.efficiency > 80 ? 'text-blue-600' : 'text-red-600'}`}>{r.efficiency.toFixed(2)}</TableCell>
-                <TableCell className="font-bold text-orange-600">{r.stops}</TableCell>
+            {sortedRecords.map(r => (
+              <TableRow key={r.id} className="text-center [&_td]:p-0.5">
+                <TableCell className="font-extrabold">{r.machine_number}</TableCell>
+                <TableCell>{r.time}</TableCell>
+                <TableCell className={`font-extrabold ${r.efficiency > 90 ? 'text-green-600' : r.efficiency > 80 ? 'text-blue-600' : 'text-red-600'}`}>{r.efficiency.toFixed(2)}</TableCell>
+                <TableCell className="font-extrabold text-orange-600">{r.stops}</TableCell>
                 <TableCell>{r.total_time}</TableCell>
                 <TableCell>{r.run_time}</TableCell>
                 <TableCell className="text-red-500">{minutesToHHMM(r.diff_minutes)}</TableCell>
-                <TableCell className="text-purple-600">{r.weft_meter.toFixed(2)}</TableCell>
+                <TableCell className="text-purple-600 font-extrabold">{r.weft_meter.toFixed(2)}</TableCell>
                 <TableCell>{r.hr.toFixed(2)}</TableCell>
-                <TableCell className="text-red-600 font-bold">{r.loss_prd.toFixed(2)}</TableCell>
+                <TableCell className="text-red-600 font-extrabold">{r.loss_prd.toFixed(2)}</TableCell>
                 <TableCell className="flex justify-center items-center gap-1">
                     <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => onEdit(r)}>
                         <Pencil className="h-3 w-3 text-blue-500" />
@@ -132,15 +176,15 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
   const [records, setRecords] = useState<CalculatedRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState<Settings | null>(null)
+  const [sortDescriptor, setSortDescriptor] = useState<{key: keyof CalculatedRecord, direction: 'asc' | 'desc'} | null>({key: 'machine_number', direction: 'asc'})
   const { toast } = useToast()
 
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     setLoading(true)
     const { data, error } = await supabase
       .from('efficiency_records')
       .select('*')
       .eq('date', date)
-      .order('created_at', { ascending: false })
 
     if (error) {
       console.error("Error fetching records:", error)
@@ -149,6 +193,15 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
       setRecords(data.map(calculateFields))
     }
     setLoading(false)
+  }, [date, toast])
+
+  const handleSort = (key: keyof CalculatedRecord) => {
+    setSortDescriptor(prev => {
+        if (prev?.key === key) {
+            return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc'}
+        }
+        return {key, direction: 'asc'}
+    })
   }
 
   useEffect(() => {
@@ -176,7 +229,7 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [date, toast])
+  }, [date, toast, fetchRecords])
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this record?')) return
@@ -198,10 +251,8 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
 
   return (
     <div className="space-y-2">
-      <RecordsTable records={dayRecords} title="Day Shift" date={date} settings={settings} onDelete={handleDelete} onEdit={onEdit} />
-      <RecordsTable records={nightRecords} title="Night Shift" date={date} settings={settings} onDelete={handleDelete} onEdit={onEdit} />
+      <RecordsTable records={dayRecords} title="Day Shift" date={date} settings={settings} onDelete={handleDelete} onEdit={onEdit} onSort={handleSort} sortDescriptor={sortDescriptor} />
+      <RecordsTable records={nightRecords} title="Night Shift" date={date} settings={settings} onDelete={handleDelete} onEdit={onEdit} onSort={handleSort} sortDescriptor={sortDescriptor} />
     </div>
   )
 }
-
-    

@@ -6,7 +6,7 @@ import type { EfficiencyRecord } from '@/lib/types'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 import { Skeleton } from '../ui/skeleton'
 import { DateRange } from 'react-day-picker'
-import { timeStringToSeconds, secondsToHHMMSS } from '@/lib/utils'
+import { timeStringToSeconds, minutesToHHMM } from '@/lib/utils'
 
 type ReportViewProps = {
   filters: {
@@ -19,7 +19,7 @@ type ReportViewProps = {
 
 type CalculatedRecord = EfficiencyRecord & {
   efficiency: number
-  diff_seconds: number
+  diff_minutes: number
   hr: number
   loss_prd: number
 }
@@ -27,18 +27,22 @@ type CalculatedRecord = EfficiencyRecord & {
 const calculateFields = (r: EfficiencyRecord): CalculatedRecord => {
   const total_seconds = timeStringToSeconds(r.total_time);
   const run_seconds = timeStringToSeconds(r.run_time);
-  const efficiency = total_seconds > 0 ? (run_seconds / total_seconds) * 100 : 0
-  const diff_seconds = total_seconds - run_seconds
-  const runTimeHours = run_seconds / 3600;
+  const total_minutes = total_seconds / 60;
+  const run_minutes = run_seconds / 60;
+  const efficiency = total_minutes > 0 ? (run_minutes / total_minutes) * 100 : 0
+  const diff_minutes = total_minutes - run_minutes
+  const runTimeHours = run_minutes / 60;
   const hr = runTimeHours > 0 ? r.weft_meter / runTimeHours : 0
-  const lossPrdHours = diff_seconds / 3600;
+  const lossPrdHours = diff_minutes / 60;
   const loss_prd = hr * lossPrdHours
-  return { ...r, efficiency, diff_seconds, hr, loss_prd }
+  return { ...r, efficiency, diff_minutes, hr, loss_prd }
 }
 
 export default function ReportView({ filters, onDataLoaded }: ReportViewProps) {
   const [records, setRecords] = useState<CalculatedRecord[]>([])
   const [loading, setLoading] = useState(false)
+  
+  const headers = ['M/C', 'Shift', 'Effi(%)', 'Stops', 'Tot.T', 'Run.T', 'Diff', 'Weft', 'H/R', 'Loss'];
 
   useEffect(() => {
     const fetchRecords = async () => {
@@ -107,25 +111,25 @@ export default function ReportView({ filters, onDataLoaded }: ReportViewProps) {
 
         return (
           <div key={date} className="mb-2">
-            <h3 className="font-extrabold p-1 bg-muted/50 text-sm">Date: {format(new Date(date), 'dd/MM/yyyy')}</h3>
-            <Table className="text-xs">
+            <h3 className="font-extrabold p-1 bg-muted/50 text-sm">Date: {format(new Date(date.replace(/-/g, '/')), 'dd/MM/yyyy')}</h3>
+            <Table className="text-[11px] font-bold">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  {['M/C', 'Shift', 'Effi(%)', 'Stops', 'Tot.T', 'Run.T', 'Diff', 'Weft', 'H/R', 'Loss'].map(h => 
-                    <TableHead key={h} className="h-auto p-1 text-center">{h}</TableHead>
+                  {headers.map(h => 
+                    <TableHead key={h} className="h-auto p-0.5 text-center">{h}</TableHead>
                   )}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {dateRecords.map(r => (
-                  <TableRow key={r.id} className="text-center [&_td]:p-1">
+                  <TableRow key={r.id} className="text-center [&_td]:p-0.5">
                     <TableCell>{r.machine_number}</TableCell>
                     <TableCell>{r.shift}</TableCell>
                     <TableCell>{r.efficiency.toFixed(2)}</TableCell>
                     <TableCell>{r.stops}</TableCell>
                     <TableCell>{r.total_time}</TableCell>
                     <TableCell>{r.run_time}</TableCell>
-                    <TableCell>{secondsToHHMMSS(r.diff_seconds)}</TableCell>
+                    <TableCell>{minutesToHHMM(r.diff_minutes)}</TableCell>
                     <TableCell>{r.weft_meter.toFixed(2)}</TableCell>
                     <TableCell>{r.hr.toFixed(2)}</TableCell>
                     <TableCell>{r.loss_prd.toFixed(2)}</TableCell>
@@ -134,7 +138,7 @@ export default function ReportView({ filters, onDataLoaded }: ReportViewProps) {
               </TableBody>
               <TableFooter>
                 <TableRow className="text-center font-extrabold bg-muted/30 [&_td]:p-1">
-                    <TableCell colSpan={7}>Total for {format(new Date(date), 'dd/MM')}</TableCell>
+                    <TableCell colSpan={7}>Total for {format(new Date(date.replace(/-/g, '/')), 'dd/MM')}</TableCell>
                     <TableCell>{totals.weft.toFixed(2)}</TableCell>
                     <TableCell></TableCell>
                     <TableCell>{totals.loss_prd.toFixed(2)}</TableCell>

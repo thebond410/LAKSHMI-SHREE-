@@ -107,12 +107,12 @@ export default function DailySummaryCards() {
             return (
                 <Card key={summary.date} className={cn('p-1', effColor)}>
                     <CardHeader className="p-1">
-                        <CardTitle className="text-center text-sm">{format(new Date(summary.date), 'dd/MM/yyyy')}</CardTitle>
+                        <CardTitle className="text-center text-[11px] font-bold">{format(new Date(summary.date), 'dd/MM/yyyy')}</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-1 text-center text-xs">
+                    <CardContent className="p-1 text-center text-[11px] font-bold">
                          <div className="grid grid-cols-2 gap-1">
-                            <div className="font-bold">Weft</div>
-                            <div className="font-bold">Eff(%)</div>
+                            <div className="font-extrabold">Weft</div>
+                            <div className="font-extrabold">Eff(%)</div>
                             <div>{summary.total_weft.toFixed(1)}m</div>
                             <div>{summary.avg_efficiency.toFixed(2)}%</div>
                          </div>

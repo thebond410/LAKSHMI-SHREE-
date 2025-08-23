@@ -28,12 +28,12 @@ const EfficiencyCard = ({ data }: { data: PerformanceData }) => {
   return (
     <Card className={cn('p-1', effColor)}>
       <CardHeader className="p-1">
-        <CardTitle className="text-center text-sm">M/C {data.machine_number}</CardTitle>
+        <CardTitle className="text-center text-[11px] font-bold">M/C {data.machine_number}</CardTitle>
       </CardHeader>
       <CardContent className="p-1 text-center">
-        <div className="grid grid-cols-2 gap-1 text-xs">
-          <div className="font-bold">Today</div>
-          <div className="font-bold">Yesterday</div>
+        <div className="grid grid-cols-2 gap-1 text-[11px] font-bold">
+          <div className="font-extrabold">Today</div>
+          <div className="font-extrabold">Yesterday</div>
           <div>{data.today_weft.toFixed(1)}m</div>
           <div>{data.yesterday_weft.toFixed(1)}m</div>
           <div>{data.today_efficiency.toFixed(2)}%</div>
