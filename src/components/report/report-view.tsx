@@ -6,7 +6,7 @@ import type { EfficiencyRecord } from '@/lib/types'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 import { Skeleton } from '../ui/skeleton'
 import { DateRange } from 'react-day-picker'
-import { minutesToHHMM } from '@/lib/utils'
+import { minutesToHHMM, timeStringToMinutes } from '@/lib/utils'
 
 type ReportViewProps = {
   filters: {
@@ -25,9 +25,11 @@ type CalculatedRecord = EfficiencyRecord & {
 }
 
 const calculateFields = (r: EfficiencyRecord): CalculatedRecord => {
-  const efficiency = r.total_minutes > 0 ? (r.run_minutes / r.total_minutes) * 100 : 0
-  const diff = r.total_minutes - r.run_minutes
-  const runTimeHours = r.run_minutes / 60;
+  const total_minutes = timeStringToMinutes(r.total_time);
+  const run_minutes = timeStringToMinutes(r.run_time);
+  const efficiency = total_minutes > 0 ? (run_minutes / total_minutes) * 100 : 0
+  const diff = total_minutes - run_minutes
+  const runTimeHours = run_minutes / 60;
   const hr = runTimeHours > 0 ? r.weft_meter / runTimeHours : 0
   const lossPrdHours = diff / 60;
   const loss_prd = hr * lossPrdHours
@@ -67,7 +69,7 @@ export default function ReportView({ filters, onDataLoaded }: ReportViewProps) {
       } else {
         const calculatedData = data.map(calculateFields);
         setRecords(calculatedData)
-        onDataLoaded(calculatedData);
+        onDataLoaded(data);
       }
       setLoading(false)
     }
@@ -121,8 +123,8 @@ export default function ReportView({ filters, onDataLoaded }: ReportViewProps) {
                     <TableCell>{r.shift}</TableCell>
                     <TableCell>{r.efficiency.toFixed(2)}</TableCell>
                     <TableCell>{r.stops}</TableCell>
-                    <TableCell>{minutesToHHMM(r.total_minutes)}</TableCell>
-                    <TableCell>{minutesToHHMM(r.run_minutes)}</TableCell>
+                    <TableCell>{r.total_time}</TableCell>
+                    <TableCell>{r.run_time}</TableCell>
                     <TableCell>{minutesToHHMM(r.diff)}</TableCell>
                     <TableCell>{r.weft_meter.toFixed(2)}</TableCell>
                     <TableCell>{r.hr.toFixed(2)}</TableCell>

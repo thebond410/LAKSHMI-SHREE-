@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS "efficiency_records" (
   "machine_number" text NOT NULL,
   "weft_meter" numeric(8, 2) NOT NULL,
   "stops" integer NOT NULL,
-  "total_minutes" integer NOT NULL,
-  "run_minutes" integer NOT NULL
+  "total_time" text NOT NULL,
+  "run_time" text NOT NULL
 );
 
 -- Table for storing application settings

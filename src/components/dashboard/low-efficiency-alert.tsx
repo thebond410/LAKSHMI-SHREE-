@@ -1,4 +1,3 @@
-
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -6,6 +5,7 @@ import { subDays, format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '../ui/skeleton'
+import { timeStringToMinutes } from '@/lib/utils'
 
 type LowEfficiencyMachine = {
   machine_number: string
@@ -40,7 +40,7 @@ export default function LowEfficiencyAlert() {
 
       const { data, error } = await supabase
         .from('efficiency_records')
-        .select('machine_number, total_minutes, run_minutes')
+        .select('machine_number, total_time, run_time')
         .gte('date', threeDaysAgo)
 
       if (error) {
@@ -53,8 +53,8 @@ export default function LowEfficiencyAlert() {
         if (!acc[r.machine_number]) {
           acc[r.machine_number] = { total_minutes: 0, run_minutes: 0 }
         }
-        acc[r.machine_number].total_minutes += r.total_minutes
-        acc[r.machine_number].run_minutes += r.run_minutes
+        acc[r.machine_number].total_minutes += timeStringToMinutes(r.total_time)
+        acc[r.machine_number].run_minutes += timeStringToMinutes(r.run_time)
         return acc
       }, {} as Record<string, { total_minutes: number; run_minutes: number }>)
 

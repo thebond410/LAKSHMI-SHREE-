@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
 import { CalendarIcon, Loader2 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, timeStringToMinutes } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -15,12 +15,6 @@ import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
 import { useState, useRef } from "react"
 import { extractEfficiencyData } from "@/ai/flows/extract-efficiency-data"
-
-const timeStringToMinutes = (time: string): number => {
-    const [hours, minutes] = time.split(':').map(Number);
-    if (isNaN(hours) || isNaN(minutes)) return 0;
-    return hours * 60 + minutes;
-};
 
 const formSchema = z.object({
   date: z.date({
@@ -61,13 +55,10 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSaving(true)
-    const [hours, minutes] = values.time.split(':').map(Number);
+    const [hours] = values.time.split(':').map(Number);
     const shift = (hours >= 7 && hours < 19) ? 'A' : 'B';
     
-    const total_minutes = timeStringToMinutes(values.total_time);
-    const run_minutes = timeStringToMinutes(values.run_time);
-
-    if (run_minutes > total_minutes) {
+    if (timeStringToMinutes(values.run_time) > timeStringToMinutes(values.total_time)) {
         toast({
             variant: "destructive",
             title: "Invalid Input",
@@ -83,8 +74,8 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
       machine_number: values.machine_number,
       weft_meter: values.weft_meter,
       stops: values.stops,
-      total_minutes,
-      run_minutes,
+      total_time: values.total_time,
+      run_time: values.run_time,
     })
 
     if (error) {
