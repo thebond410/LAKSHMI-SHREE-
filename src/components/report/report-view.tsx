@@ -6,7 +6,7 @@ import type { EfficiencyRecord } from '@/lib/types'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 import { Skeleton } from '../ui/skeleton'
 import { DateRange } from 'react-day-picker'
-import { timeStringToSeconds, minutesToHHMM } from '@/lib/utils'
+import { timeStringToSeconds, minutesToHHMM, timeStringToHHMM } from '@/lib/utils'
 
 type ReportViewProps = {
   filters: {
@@ -127,8 +127,8 @@ export default function ReportView({ filters, onDataLoaded }: ReportViewProps) {
                     <TableCell>{r.shift}</TableCell>
                     <TableCell className={`font-extrabold ${r.efficiency > 90 ? 'text-green-600' : r.efficiency > 80 ? 'text-blue-600' : 'text-red-600'}`}>{r.efficiency.toFixed(2)}</TableCell>
                     <TableCell className="font-extrabold text-orange-600">{r.stops}</TableCell>
-                    <TableCell>{r.total_time}</TableCell>
-                    <TableCell>{r.run_time}</TableCell>
+                    <TableCell>{timeStringToHHMM(r.total_time)}</TableCell>
+                    <TableCell>{timeStringToHHMM(r.run_time)}</TableCell>
                     <TableCell className="text-red-500">{minutesToHHMM(r.diff_minutes)}</TableCell>
                     <TableCell className="text-purple-600 font-extrabold">{r.weft_meter.toFixed(2)}</TableCell>
                     <TableCell>{r.hr.toFixed(2)}</TableCell>

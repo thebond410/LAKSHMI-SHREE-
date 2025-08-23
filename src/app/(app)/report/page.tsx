@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Download } from 'lucide-react'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { timeStringToSeconds } from '@/lib/utils'
+import { timeStringToSeconds, timeStringToHHMM } from '@/lib/utils'
 
 export default function ReportPage() {
   const [filters, setFilters] = useState<{ dateRange?: DateRange; machine?: string; shift?: string }>({})
@@ -28,8 +28,8 @@ export default function ReportPage() {
           r.shift,
           efficiency.toFixed(2),
           r.stops,
-          r.total_time,
-          r.run_time,
+          timeStringToHHMM(r.total_time),
+          timeStringToHHMM(r.run_time),
           r.weft_meter,
         ]
       }),
@@ -52,5 +52,3 @@ export default function ReportPage() {
     </div>
   )
 }
-
-    

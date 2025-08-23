@@ -15,7 +15,7 @@ import type { EfficiencyRecord, Settings } from '@/lib/types'
 import { Skeleton } from '../ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { format, parseISO } from 'date-fns'
-import { timeStringToSeconds, minutesToHHMM } from '@/lib/utils'
+import { timeStringToSeconds, minutesToHHMM, timeStringToHHMM } from '@/lib/utils'
 import { Button } from '../ui/button'
 import { Pencil, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
@@ -109,7 +109,7 @@ const RecordsTable = ({ records, title, date, settings, onDelete, onEdit, onSort
     }
     const message = settings.whatsapp_message_template
         .replace('{date}', record.date)
-        .replace('{time}', format(parseISO(record.created_at), "HH:mm"))
+        .replace('{time}', timeStringToHHMM(record.time))
         .replace('{mc}', record.machine_number)
         .replace('{shift}', record.shift)
         .replace('{eff}', record.efficiency.toFixed(2))
@@ -119,12 +119,6 @@ const RecordsTable = ({ records, title, date, settings, onDelete, onEdit, onSort
     const url = `https://wa.me/${settings.whatsapp_number}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   }
-  
-  const formatTime = (timeStr: string) => {
-      if (!timeStr) return "00:00";
-      const parts = timeStr.split(":");
-      return parts.slice(0, 2).join(":");
-  };
 
   return (
     <Card className="m-0 p-0">
@@ -147,11 +141,11 @@ const RecordsTable = ({ records, title, date, settings, onDelete, onEdit, onSort
               {sortedRecords.map(r => (
                 <TableRow key={r.id} className="text-center [&_td]:p-[3px] [&_td]:whitespace-nowrap">
                   <TableCell className="font-extrabold">{r.machine_number}</TableCell>
-                  <TableCell>{formatTime(r.time)}</TableCell>
+                  <TableCell>{timeStringToHHMM(r.time)}</TableCell>
                   <TableCell className={`font-extrabold ${r.efficiency > 90 ? 'text-green-600' : r.efficiency > 80 ? 'text-blue-600' : 'text-red-600'}`}>{r.efficiency.toFixed(2)}</TableCell>
                   <TableCell className="font-extrabold text-orange-600">{r.stops}</TableCell>
-                  <TableCell>{r.total_time}</TableCell>
-                  <TableCell>{r.run_time}</TableCell>
+                  <TableCell>{timeStringToHHMM(r.total_time)}</TableCell>
+                  <TableCell>{timeStringToHHMM(r.run_time)}</TableCell>
                   <TableCell className="text-red-500">{minutesToHHMM(r.diff_minutes)}</TableCell>
                   <TableCell className="text-purple-600 font-extrabold">{r.weft_meter.toFixed(2)}</TableCell>
                   <TableCell>{r.hr.toFixed(2)}</TableCell>

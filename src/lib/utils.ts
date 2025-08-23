@@ -29,14 +29,12 @@ export function secondsToHHMMSS(totalSeconds: number): string {
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
-export function secondsToHHMM(totalSeconds: number): string {
-  if (isNaN(totalSeconds) || totalSeconds < 0) {
-    return "00:00";
-  }
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const pad = (num: number) => num.toString().padStart(2, '0');
-  return `${pad(hours)}:${pad(minutes)}`;
+export function timeStringToHHMM(timeStr: string): string {
+    if (!timeStr || !timeStr.includes(':')) return "00:00";
+    const parts = timeStr.split(":");
+    const hours = parts[0] ?? "00";
+    const minutes = parts[1] ?? "00";
+    return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
 }
 
 

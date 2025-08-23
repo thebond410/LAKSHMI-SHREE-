@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format, parseISO } from "date-fns"
 import { Loader2, Camera, Upload } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, timeStringToHHMM } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
@@ -57,8 +57,8 @@ const getDefaultValues = (initialData?: EfficiencyRecord | null, currentDate?: D
       machine_number: initialData.machine_number,
       weft_meter: initialData.weft_meter,
       stops: initialData.stops,
-      total_time: initialData.total_time,
-      run_time: initialData.run_time,
+      total_time: timeStringToHHMM(initialData.total_time),
+      run_time: timeStringToHHMM(initialData.run_time),
     }
   }
   const dateToUse = currentDate || new Date();
@@ -89,15 +89,6 @@ export default function NewRecordForm({ onSave, onClose, initialData, currentDat
   useEffect(() => {
     form.reset(getDefaultValues(initialData, currentDate))
   }, [initialData, currentDate, form])
-  
-  const formatTimeToSeconds = (timeStr: string): string => {
-    if (!timeStr) return "00:00";
-    const parts = timeStr.split(":");
-    if (parts.length >= 2) {
-      return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
-    }
-    return "00:00";
-  }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSaving(true)
@@ -208,12 +199,12 @@ export default function NewRecordForm({ onSave, onClose, initialData, currentDat
         const result = await extractEfficiencyData({ photoDataUri })
         
         if (result) {
-          form.setValue("time", formatTimeToSeconds(result.time))
+          form.setValue("time", timeStringToHHMM(result.time))
           form.setValue("machine_number", result.machineNumber)
           form.setValue("weft_meter", result.weftMeter)
           form.setValue("stops", result.stops)
-          form.setValue("total_time", formatTimeToSeconds(result.totalTime))
-          form.setValue("run_time", formatTimeToSeconds(result.runTime))
+          form.setValue("total_time", timeStringToHHMM(result.totalTime))
+          form.setValue("run_time", timeStringToHHMM(result.runTime))
         }
       } catch (error) {
         console.error(error)
