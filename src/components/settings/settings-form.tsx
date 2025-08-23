@@ -33,6 +33,21 @@ const fieldLabels: Record<keyof Settings, string> = {
   whatsapp_message_template: "WhatsApp Message Template",
 }
 
+const WhatsAppTemplateDescription = () => (
+    <div className="text-xs text-muted-foreground mt-1 p-1 space-y-1">
+        <p className="font-bold">Available placeholders:</p>
+        <div className="grid grid-cols-3 gap-x-2">
+            <span>`{date}`</span>
+            <span>`{time}`</span>
+            <span>`{mc}`</span>
+            <span>`{shift}`</span>
+            <span>`{eff}`</span>
+            <span>`{weft}`</span>
+            <span>`{stops}`</span>
+        </div>
+    </div>
+)
+
 export default function SettingsForm({ fields }: SettingsFormProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
@@ -88,7 +103,10 @@ export default function SettingsForm({ fields }: SettingsFormProps) {
             <FormLabel className="text-xs m-0 p-0">{fieldLabels[fieldName]}</FormLabel>
             <FormControl>
               {isTextArea ? (
-                <Textarea {...field} value={field.value ?? ""} className="text-xs p-1" />
+                <>
+                    <Textarea {...field} value={field.value ?? ""} className="text-xs p-1" />
+                    <WhatsAppTemplateDescription />
+                </>
               ) : (
                 <Input type={isNumber ? 'number' : 'text'} {...field} value={field.value ?? ""} className="h-6 text-xs p-1" />
               )}

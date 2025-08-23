@@ -120,6 +120,12 @@ const RecordsTable = ({ records, title, date, settings, onDelete, onEdit, onSort
     window.open(url, '_blank');
   }
   
+  const formatTime = (timeStr: string) => {
+      if (!timeStr) return "00:00";
+      const parts = timeStr.split(":");
+      return parts.slice(0, 2).join(":");
+  };
+
   return (
     <Card className="m-0 p-0">
       <CardHeader className="p-1">
@@ -141,7 +147,7 @@ const RecordsTable = ({ records, title, date, settings, onDelete, onEdit, onSort
               {sortedRecords.map(r => (
                 <TableRow key={r.id} className="text-center [&_td]:p-[3px] [&_td]:whitespace-nowrap">
                   <TableCell className="font-extrabold">{r.machine_number}</TableCell>
-                  <TableCell>{r.time}</TableCell>
+                  <TableCell>{formatTime(r.time)}</TableCell>
                   <TableCell className={`font-extrabold ${r.efficiency > 90 ? 'text-green-600' : r.efficiency > 80 ? 'text-blue-600' : 'text-red-600'}`}>{r.efficiency.toFixed(2)}</TableCell>
                   <TableCell className="font-extrabold text-orange-600">{r.stops}</TableCell>
                   <TableCell>{r.total_time}</TableCell>
@@ -230,14 +236,8 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
     fetchSettings()
     fetchRecords()
 
-    // Real-time subscription for inserts and updates
     const channel = supabase.channel(`efficiency_records_list_${date}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'efficiency_records', filter: `date=eq.${date}` },
-        (payload) => {
-            fetchRecords();
-        }
-      )
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'efficiency_records', filter: `date=eq.${date}` },
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'efficiency_records', filter: `date=eq.${date}` },
         (payload) => {
             fetchRecords();
         }
@@ -250,13 +250,12 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
   }, [date, fetchRecords])
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this record?')) return
+    if (!window.confirm('Are you sure you want to remove this record?')) return
     const { error } = await supabase.from('efficiency_records').delete().eq('id', id)
     if (error) {
-        toast({ variant: 'destructive', title: 'Error deleting record', description: error.message })
+        toast({ variant: 'destructive', title: 'Error removing record', description: error.message })
     } else {
-        toast({ title: 'Record deleted successfully' })
-        // Re-fetch the data to ensure the list is up-to-date.
+        toast({ title: 'Record Removed' })
         fetchRecords()
     }
   }

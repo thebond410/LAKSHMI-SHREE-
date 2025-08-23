@@ -28,7 +28,7 @@ const ExtractEfficiencyDataOutputSchema = z.object({
   stops: z.number().describe('The number of stops from the display (All stops).'),
   totalTime: z.string().describe("The total time from the display in HH:MM format. It's labeled 'Total Time'."),
   runTime: z.string().describe("The run time from the display in HH:MM format. It's labeled 'Run time len'."),
-  machineNumber: z.string().describe('The machine number from the display, identifiable from the steel plate or the display.'),
+  machineNumber: z.string().describe('The machine number from the display. This is a critical field. It is a numerical identifier for the machine, often on a steel plate or on the screen. Be very precise in extracting this number.'),
 });
 export type ExtractEfficiencyDataOutput = z.infer<typeof ExtractEfficiencyDataOutputSchema>;
 
@@ -51,7 +51,7 @@ const prompt = ai.definePrompt({
   - Stops (All stops): A number.
   - Total Time: A time value in HH:MM format from the "Total Time" field.
   - Run Time (Run time len): A time value in HH:MM format from the "Run time len" field.
-  - Machine Number: A string representing the machine number, which may be on a steel plate near the display or on the screen itself.
+  - Machine Number: This is the most important field. It is the numerical identifier for the machine. It might be on a physical steel plate attached to the machine, or shown on the digital display itself. You MUST find this number and return it as a string. Be very accurate.
 
   Return ONLY the extracted data in a valid JSON object. Do not include any extra text or explanations. Be very precise and fast.
 
