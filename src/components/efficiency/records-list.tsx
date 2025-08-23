@@ -230,8 +230,14 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
     fetchSettings()
     fetchRecords()
 
-    const channel = supabase.channel('efficiency_records_list')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'efficiency_records', filter: `date=eq.${date}` },
+    // Real-time subscription for inserts and updates
+    const channel = supabase.channel(`efficiency_records_list_${date}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'efficiency_records', filter: `date=eq.${date}` },
+        (payload) => {
+            fetchRecords();
+        }
+      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'efficiency_records', filter: `date=eq.${date}` },
         (payload) => {
             fetchRecords();
         }
