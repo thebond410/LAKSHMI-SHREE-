@@ -1,3 +1,4 @@
+
 'use client'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -18,8 +19,10 @@ export default function EfficiencyPage() {
   const handleSave = () => {
     // Increment version to trigger re-fetch in RecordsList
     setRecordsVersion(v => v + 1)
-    setEditingRecord(null) // Exit edit mode
-    setIsFormOpen(false) // Close form after save
+    if (editingRecord) { // if we were editing
+      setEditingRecord(null) 
+      setIsFormOpen(false) 
+    }
   }
   
   const handleEdit = (record: EfficiencyRecord) => {
@@ -38,7 +41,7 @@ export default function EfficiencyPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh_-_2.5rem)]">
+    <div className="flex flex-col h-[calc(100vh_-_2.5rem)] overflow-x-hidden">
       <div className="p-1 flex justify-between items-center border-b">
         <div className="flex items-center gap-2">
             <Button size="sm" onClick={isFormOpen && !editingRecord ? handleCloseForm : handleAddNew} className="gap-1 px-2 py-1 h-auto text-xs">
@@ -65,3 +68,5 @@ export default function EfficiencyPage() {
     </div>
   )
 }
+
+    

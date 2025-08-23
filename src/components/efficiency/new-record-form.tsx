@@ -1,3 +1,4 @@
+
 'use client'
 
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -46,7 +47,7 @@ const timeStringToMinutes = (time: string): number => {
     return h * 60 + m;
 }
 
-const getDefaultValues = (initialData?: EfficiencyRecord | null) => {
+const getDefaultValues = (initialData?: EfficiencyRecord | null, currentDate?: Date) => {
   if (initialData) {
     return {
       date: parseISO(initialData.date),
@@ -59,8 +60,9 @@ const getDefaultValues = (initialData?: EfficiencyRecord | null) => {
       run_time: initialData.run_time,
     }
   }
+  const dateToUse = currentDate || new Date();
   return {
-    date: new Date(),
+    date: dateToUse,
     time: format(new Date(), "HH:mm"),
     shift: (new Date().getHours() >= 7 && new Date().getHours() < 19) ? 'Day' : 'Night',
     machine_number: "",
@@ -184,8 +186,10 @@ export default function NewRecordForm({ onSave, onClose, initialData }: NewRecor
         description: `Efficiency record for M/C ${values.machine_number} has been successfully ${initialData ? 'updated' : 'saved'}.`,
       })
       onSave()
-      if (!initialData) { // Only reset if it was a new entry
-         form.reset(getDefaultValues())
+      if (initialData) {
+        onClose(); // Close form only on update
+      } else {
+         form.reset(getDefaultValues(null, values.date))
       }
     }
     setIsSaving(false)
@@ -341,3 +345,5 @@ export default function NewRecordForm({ onSave, onClose, initialData }: NewRecor
     </Form>
   )
 }
+
+    
