@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { Loader2, Camera, Upload } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -11,10 +11,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { extractEfficiencyData } from "@/ai/flows/extract-efficiency-data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DatePicker } from "../ui/date-picker"
+import type { EfficiencyRecord } from '@/lib/types'
 
 const timeRegex = /^(?:2[0-3]|[01]?[0-9]):[0-5][0-9]$/; // HH:MM
 
@@ -34,17 +35,31 @@ const formSchema = z.object({
 type NewRecordFormProps = {
   onSave: () => void
   onClose: () => void
+  initialData?: EfficiencyRecord | null
 }
 
-const timeStringToSeconds = (time: string): number => {
+const timeStringToMinutes = (time: string): number => {
     if (!time) return 0;
     const parts = time.split(':').map(Number);
-    if (parts.some(isNaN)) return 0;
-    const [h=0, m=0, s=0] = parts;
-    return h * 3600 + m * 60 + s;
+    if (parts.some(isNaN) || parts.length < 2) return 0;
+    const [h=0, m=0] = parts;
+    return h * 60 + m;
 }
 
-const getDefaultValues = () => ({
+const getDefaultValues = (initialData?: EfficiencyRecord | null) => {
+  if (initialData) {
+    return {
+      date: parseISO(initialData.date),
+      time: format(parseISO(initialData.created_at), "HH:mm"),
+      shift: initialData.shift,
+      machine_number: initialData.machine_number,
+      weft_meter: initialData.weft_meter,
+      stops: initialData.stops,
+      total_time: initialData.total_time,
+      run_time: initialData.run_time,
+    }
+  }
+  return {
     date: new Date(),
     time: format(new Date(), "HH:mm"),
     shift: (new Date().getHours() >= 7 && new Date().getHours() < 19) ? 'Day' : 'Night',
@@ -53,10 +68,10 @@ const getDefaultValues = () => ({
     stops: 0,
     total_time: "00:00",
     run_time: "00:00",
-})
+  }
+}
 
-
-export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
+export default function NewRecordForm({ onSave, onClose, initialData }: NewRecordFormProps) {
   const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
@@ -65,8 +80,12 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: getDefaultValues(),
+    defaultValues: getDefaultValues(initialData),
   })
+
+  useEffect(() => {
+    form.reset(getDefaultValues(initialData))
+  }, [initialData, form])
   
   const formatTimeToSeconds = (timeStr: string): string => {
     if (!timeStr) return "00:00";
@@ -80,37 +99,38 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSaving(true)
     
-    // Check for duplicate record
-    const { data: existingRecord, error: fetchError } = await supabase
-      .from("efficiency_records")
-      .select('id')
-      .eq('date', format(values.date, "yyyy-MM-dd"))
-      .eq('shift', values.shift)
-      .eq('machine_number', values.machine_number)
-      .maybeSingle();
+    // Check for duplicate record if not editing
+    if (!initialData) {
+      const { data: existingRecord, error: fetchError } = await supabase
+        .from("efficiency_records")
+        .select('id')
+        .eq('date', format(values.date, "yyyy-MM-dd"))
+        .eq('shift', values.shift)
+        .eq('machine_number', values.machine_number)
+        .maybeSingle();
 
-    if (fetchError) {
-      toast({
-        variant: "destructive",
-        title: "Error checking for duplicates",
-        description: fetchError.message,
-      });
-      setIsSaving(false);
-      return;
+      if (fetchError) {
+        toast({
+          variant: "destructive",
+          title: "Error checking for duplicates",
+          description: fetchError.message,
+        });
+        setIsSaving(false);
+        return;
+      }
+
+      if (existingRecord) {
+        toast({
+          variant: "destructive",
+          title: "Duplicate Record",
+          description: `A record for M/C ${values.machine_number} on this date and shift already exists.`,
+        });
+        setIsSaving(false);
+        return;
+      }
     }
 
-    if (existingRecord) {
-      toast({
-        variant: "destructive",
-        title: "Duplicate Record",
-        description: `A record for M/C ${values.machine_number} on this date and shift already exists.`,
-      });
-      setIsSaving(false);
-      return;
-    }
-
-
-    if (timeStringToSeconds(values.run_time) > timeStringToSeconds(values.total_time)) {
+    if (timeStringToMinutes(values.run_time) > timeStringToMinutes(values.total_time)) {
         toast({
             variant: "destructive",
             title: "Invalid Input",
@@ -120,34 +140,53 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
         return;
     }
 
-    const { error } = await supabase.from("efficiency_records").insert({
+    const recordPayload = {
       date: format(values.date, "yyyy-MM-dd"),
       time: `${values.time}:00`,
       shift: values.shift,
       machine_number: values.machine_number,
       weft_meter: values.weft_meter,
       stops: values.stops,
-      total_time: `${values.total_time}:00`,
-      run_time: `${values.run_time}:00`,
+      total_time: values.total_time, // Keep as HH:MM
+      run_time: values.run_time,     // Keep as HH:MM
       created_at: new Date(values.date.setHours(
         parseInt(values.time.split(':')[0]),
         parseInt(values.time.split(':')[1])
       )).toISOString(),
-    })
+    }
+
+    let error;
+
+    if (initialData) {
+      // Update existing record
+      const { error: updateError } = await supabase
+        .from("efficiency_records")
+        .update(recordPayload)
+        .eq('id', initialData.id)
+      error = updateError;
+    } else {
+      // Insert new record
+      const { error: insertError } = await supabase
+        .from("efficiency_records")
+        .insert(recordPayload)
+      error = insertError;
+    }
 
     if (error) {
       toast({
         variant: "destructive",
-        title: "Error saving record",
+        title: `Error ${initialData ? 'updating' : 'saving'} record`,
         description: error.message,
       })
     } else {
       toast({
-        title: "Record saved",
-        description: `Efficiency record for M/C ${values.machine_number} has been saved.`,
+        title: `Record ${initialData ? 'updated' : 'saved'}`,
+        description: `Efficiency record for M/C ${values.machine_number} has been successfully ${initialData ? 'updated' : 'saved'}.`,
       })
       onSave()
-      form.reset(getDefaultValues())
+      if (!initialData) { // Only reset if it was a new entry
+         form.reset(getDefaultValues())
+      }
     }
     setIsSaving(false)
   }
@@ -194,7 +233,7 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
          {/* Row 1 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
             <FormField
               control={form.control}
               name="date"
@@ -226,14 +265,14 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
             />
         </div>
         {/* Row 2 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
              <FormField
                 control={form.control}
                 name="shift"
                 render={({ field }) => (
                     <FormItem className={formItemClass}>
                         <FormLabel className={formLabelClass}>Shift</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                                 <SelectTrigger className={formInputClass}>
                                     <SelectValue placeholder="Select shift" />
@@ -294,7 +333,7 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
           <div className="flex-grow" />
 
           <Button type="submit" size="sm" disabled={isSaving || isScanning} className="text-xs h-6 px-2">
-            {isSaving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null} Save Record
+            {isSaving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null} {initialData ? 'Update Record' : 'Save Record'}
           </Button>
           <Button type="button" size="sm" variant="ghost" onClick={onClose} className="text-xs h-6 px-2">Close</Button>
         </div>

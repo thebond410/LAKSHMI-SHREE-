@@ -13,32 +13,32 @@ import {
 import type { EfficiencyRecord, Settings } from '@/lib/types'
 import { Skeleton } from '../ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
-import { format } from 'date-fns'
-import { timeStringToSeconds, secondsToHHMM } from '@/lib/utils'
+import { format, parseISO } from 'date-fns'
+import { timeStringToMinutes, minutesToHHMM } from '@/lib/utils'
 import { Button } from '../ui/button'
 import { Pencil, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 type CalculatedRecord = EfficiencyRecord & {
   efficiency: number
-  diff_seconds: number
+  diff_minutes: number
   hr: number
   loss_prd: number
 }
 
 const calculateFields = (r: EfficiencyRecord): CalculatedRecord => {
-  const total_seconds = timeStringToSeconds(r.total_time);
-  const run_seconds = timeStringToSeconds(r.run_time);
-  const efficiency = total_seconds > 0 ? (run_seconds / total_seconds) * 100 : 0
-  const diff_seconds = total_seconds - run_seconds
-  const runTimeHours = run_seconds / 3600;
+  const total_minutes = timeStringToMinutes(r.total_time);
+  const run_minutes = timeStringToMinutes(r.run_time);
+  const efficiency = total_minutes > 0 ? (run_minutes / total_minutes) * 100 : 0
+  const diff_minutes = total_minutes - run_minutes
+  const runTimeHours = run_minutes / 60;
   const hr = runTimeHours > 0 ? r.weft_meter / runTimeHours : 0
-  const lossPrdHours = diff_seconds / 3600;
+  const lossPrdHours = diff_minutes / 60;
   const loss_prd = hr * lossPrdHours
-  return { ...r, efficiency, diff_seconds, hr, loss_prd }
+  return { ...r, efficiency, diff_minutes, hr, loss_prd }
 }
 
-const RecordsTable = ({ records, title, date, settings, onDelete }: { records: CalculatedRecord[], title: string, date: string, settings: Settings | null, onDelete: (id: string) => void }) => {
+const RecordsTable = ({ records, title, date, settings, onDelete, onEdit }: { records: CalculatedRecord[], title: string, date: string, settings: Settings | null, onDelete: (id: string) => void, onEdit: (record: EfficiencyRecord) => void }) => {
   const { toast } = useToast()
 
   const totals = useMemo(() => {
@@ -56,7 +56,7 @@ const RecordsTable = ({ records, title, date, settings, onDelete }: { records: C
     }
     const message = settings.whatsapp_message_template
         .replace('{date}', record.date)
-        .replace('{time}', record.time)
+        .replace('{time}', format(parseISO(record.created_at), "HH:mm"))
         .replace('{mc}', record.machine_number)
         .replace('{shift}', record.shift)
         .replace('{eff}', record.efficiency.toFixed(2))
@@ -70,7 +70,7 @@ const RecordsTable = ({ records, title, date, settings, onDelete }: { records: C
   return (
     <Card className="m-0 p-0">
       <CardHeader className="p-1">
-        <CardTitle className="text-sm">{title} - {format(new Date(date), 'dd/MM/yyyy')}</CardTitle>
+        <CardTitle className="text-sm">{title} - {format(new Date(date.replace(/-/g, '/')), 'dd/MM/yyyy')}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
         <Table className="text-xs">
@@ -85,17 +85,17 @@ const RecordsTable = ({ records, title, date, settings, onDelete }: { records: C
             {records.map(r => (
               <TableRow key={r.id} className="text-center [&_td]:p-1">
                 <TableCell className="font-bold">{r.machine_number}</TableCell>
-                <TableCell>{secondsToHHMM(timeStringToSeconds(r.time))}</TableCell>
+                <TableCell>{format(parseISO(r.created_at), "HH:mm")}</TableCell>
                 <TableCell className={`font-bold ${r.efficiency > 90 ? 'text-green-600' : r.efficiency > 80 ? 'text-blue-600' : 'text-red-600'}`}>{r.efficiency.toFixed(2)}</TableCell>
                 <TableCell className="font-bold text-orange-600">{r.stops}</TableCell>
-                <TableCell>{secondsToHHMM(timeStringToSeconds(r.total_time))}</TableCell>
-                <TableCell>{secondsToHHMM(timeStringToSeconds(r.run_time))}</TableCell>
-                <TableCell className="text-red-500">{secondsToHHMM(r.diff_seconds)}</TableCell>
+                <TableCell>{r.total_time}</TableCell>
+                <TableCell>{r.run_time}</TableCell>
+                <TableCell className="text-red-500">{minutesToHHMM(r.diff_minutes)}</TableCell>
                 <TableCell className="text-purple-600">{r.weft_meter.toFixed(2)}</TableCell>
                 <TableCell>{r.hr.toFixed(2)}</TableCell>
                 <TableCell className="text-red-600 font-bold">{r.loss_prd.toFixed(2)}</TableCell>
                 <TableCell className="flex justify-center items-center gap-1">
-                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => alert('Edit functionality to be implemented.')}>
+                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => onEdit(r)}>
                         <Pencil className="h-3 w-3 text-blue-500" />
                     </Button>
                     <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => handleWhatsApp(r)}>
@@ -124,7 +124,7 @@ const RecordsTable = ({ records, title, date, settings, onDelete }: { records: C
 }
 
 
-export default function RecordsList({ date }: { date: string }) {
+export default function RecordsList({ date, onEdit }: { date: string, onEdit: (record: EfficiencyRecord) => void }) {
   const [records, setRecords] = useState<CalculatedRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState<Settings | null>(null)
@@ -194,8 +194,8 @@ export default function RecordsList({ date }: { date: string }) {
 
   return (
     <div className="space-y-2">
-      <RecordsTable records={dayRecords} title="Day Shift" date={date} settings={settings} onDelete={handleDelete} />
-      <RecordsTable records={nightRecords} title="Night Shift" date={date} settings={settings} onDelete={handleDelete} />
+      <RecordsTable records={dayRecords} title="Day Shift" date={date} settings={settings} onDelete={handleDelete} onEdit={onEdit} />
+      <RecordsTable records={nightRecords} title="Night Shift" date={date} settings={settings} onDelete={handleDelete} onEdit={onEdit} />
     </div>
   )
 }
