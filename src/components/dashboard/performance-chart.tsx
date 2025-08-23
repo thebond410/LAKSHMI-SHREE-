@@ -8,8 +8,8 @@ import { Skeleton } from '../ui/skeleton'
 
 type ChartData = {
   date: string
-  dayShift: number
-  nightShift: number
+  Day: number
+  Night: number
 }
 
 export default function PerformanceChart() {
@@ -34,20 +34,20 @@ export default function PerformanceChart() {
       const groupedByDate = data.reduce((acc, record) => {
         const date = format(new Date(record.date), 'dd/MM')
         if (!acc[date]) {
-          acc[date] = { dayShift: 0, nightShift: 0 }
+          acc[date] = { Day: 0, Night: 0 }
         }
-        if (record.shift === 'A') {
-          acc[date].dayShift += record.weft_meter
+        if (record.shift === 'Day') {
+          acc[date].Day += record.weft_meter
         } else {
-          acc[date].nightShift += record.weft_meter
+          acc[date].Night += record.weft_meter
         }
         return acc
-      }, {} as Record<string, { dayShift: number; nightShift: number }>)
+      }, {} as Record<string, { Day: number; Night: number }>)
 
       const formattedData = Object.keys(groupedByDate).map(date => ({
         date,
-        dayShift: groupedByDate[date].dayShift,
-        nightShift: groupedByDate[date].nightShift,
+        Day: groupedByDate[date].Day,
+        Night: groupedByDate[date].Night,
       })).sort((a, b) => new Date(a.date.split('/').reverse().join('-')).getTime() - new Date(b.date.split('/').reverse().join('-')).getTime());
 
       setChartData(formattedData)
@@ -61,7 +61,7 @@ export default function PerformanceChart() {
     return <Skeleton className="h-48 w-full" />
   }
 
-  const renderChart = (dataKey: 'dayShift' | 'nightShift', title: string) => (
+  const renderChart = (dataKey: 'Day' | 'Night', title: string) => (
     <Card className="m-0 p-0 border-0 shadow-none">
       <CardHeader className="p-1">
         <CardTitle className="text-xs text-center">{title}</CardTitle>
@@ -85,8 +85,8 @@ export default function PerformanceChart() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-      {renderChart('dayShift', 'Day Shift Weft Meter')}
-      {renderChart('nightShift', 'Night Shift Weft Meter')}
+      {renderChart('Day', 'Day Shift Weft Meter')}
+      {renderChart('Night', 'Night Shift Weft Meter')}
     </div>
   )
 }

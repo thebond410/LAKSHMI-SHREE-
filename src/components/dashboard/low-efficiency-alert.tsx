@@ -5,7 +5,7 @@ import { subDays, format } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '../ui/skeleton'
-import { timeStringToMinutes } from '@/lib/utils'
+import { timeStringToSeconds } from '@/lib/utils'
 
 type LowEfficiencyMachine = {
   machine_number: string
@@ -51,18 +51,18 @@ export default function LowEfficiencyAlert() {
 
       const grouped = data.reduce((acc, r) => {
         if (!acc[r.machine_number]) {
-          acc[r.machine_number] = { total_minutes: 0, run_minutes: 0 }
+          acc[r.machine_number] = { total_seconds: 0, run_seconds: 0 }
         }
-        acc[r.machine_number].total_minutes += timeStringToMinutes(r.total_time)
-        acc[r.machine_number].run_minutes += timeStringToMinutes(r.run_time)
+        acc[r.machine_number].total_seconds += timeStringToSeconds(r.total_time)
+        acc[r.machine_number].run_seconds += timeStringToSeconds(r.run_time)
         return acc
-      }, {} as Record<string, { total_minutes: number; run_minutes: number }>)
+      }, {} as Record<string, { total_seconds: number; run_seconds: number }>)
 
       const machines = Object.keys(grouped)
         .map(machine_number => ({
           machine_number,
-          avg_efficiency: grouped[machine_number].total_minutes > 0 
-            ? (grouped[machine_number].run_minutes / grouped[machine_number].total_minutes) * 100 
+          avg_efficiency: grouped[machine_number].total_seconds > 0 
+            ? (grouped[machine_number].run_seconds / grouped[machine_number].total_seconds) * 100 
             : 0,
         }))
         .filter(m => m.avg_efficiency < currentSettings.threshold && m.avg_efficiency > 0)

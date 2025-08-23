@@ -6,7 +6,7 @@ import type { EfficiencyRecord } from '@/lib/types'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 import { Skeleton } from '../ui/skeleton'
 import { DateRange } from 'react-day-picker'
-import { minutesToHHMM, timeStringToMinutes } from '@/lib/utils'
+import { timeStringToSeconds, secondsToHHMMSS } from '@/lib/utils'
 
 type ReportViewProps = {
   filters: {
@@ -19,21 +19,21 @@ type ReportViewProps = {
 
 type CalculatedRecord = EfficiencyRecord & {
   efficiency: number
-  diff: number
+  diff_seconds: number
   hr: number
   loss_prd: number
 }
 
 const calculateFields = (r: EfficiencyRecord): CalculatedRecord => {
-  const total_minutes = timeStringToMinutes(r.total_time);
-  const run_minutes = timeStringToMinutes(r.run_time);
-  const efficiency = total_minutes > 0 ? (run_minutes / total_minutes) * 100 : 0
-  const diff = total_minutes - run_minutes
-  const runTimeHours = run_minutes / 60;
+  const total_seconds = timeStringToSeconds(r.total_time);
+  const run_seconds = timeStringToSeconds(r.run_time);
+  const efficiency = total_seconds > 0 ? (run_seconds / total_seconds) * 100 : 0
+  const diff_seconds = total_seconds - run_seconds
+  const runTimeHours = run_seconds / 3600;
   const hr = runTimeHours > 0 ? r.weft_meter / runTimeHours : 0
-  const lossPrdHours = diff / 60;
+  const lossPrdHours = diff_seconds / 3600;
   const loss_prd = hr * lossPrdHours
-  return { ...r, efficiency, diff, hr, loss_prd }
+  return { ...r, efficiency, diff_seconds, hr, loss_prd }
 }
 
 export default function ReportView({ filters, onDataLoaded }: ReportViewProps) {
@@ -125,7 +125,7 @@ export default function ReportView({ filters, onDataLoaded }: ReportViewProps) {
                     <TableCell>{r.stops}</TableCell>
                     <TableCell>{r.total_time}</TableCell>
                     <TableCell>{r.run_time}</TableCell>
-                    <TableCell>{minutesToHHMM(r.diff)}</TableCell>
+                    <TableCell>{secondsToHHMMSS(r.diff_seconds)}</TableCell>
                     <TableCell>{r.weft_meter.toFixed(2)}</TableCell>
                     <TableCell>{r.hr.toFixed(2)}</TableCell>
                     <TableCell>{r.loss_prd.toFixed(2)}</TableCell>

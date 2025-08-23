@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { format } from "date-fns"
 import { CalendarIcon, Loader2 } from "lucide-react"
-import { cn, timeStringToMinutes } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
@@ -16,6 +16,9 @@ import { useToast } from "@/hooks/use-toast"
 import { useState, useRef } from "react"
 import { extractEfficiencyData } from "@/ai/flows/extract-efficiency-data"
 
+const timeWithSecondsRegex = /^(?:2[0-3]|[01]?[0-9]):[0-5][0-9]:[0-5][0-9]$/; // HH:MM:SS
+const timeWithoutSecondsRegex = /^(?:2[0-3]|[01]?[0-9]):[0-5][0-9]$/; // HH:MM
+
 const formSchema = z.object({
   date: z.date({
     required_error: "A date is required.",
@@ -24,13 +27,21 @@ const formSchema = z.object({
   machine_number: z.string().min(1, "M/C No. is required"),
   weft_meter: z.coerce.number().positive("Must be positive"),
   stops: z.coerce.number().int().min(0),
-  total_time: z.string().regex(/^([0-9]+):[0-5][0-9]$/, "Invalid format (HH:MM)"),
-  run_time: z.string().regex(/^([0-9]+):[0-5][0-9]$/, "Invalid format (HH:MM)"),
+  total_time: z.string().regex(/^([0-9]+):[0-5][0-9]:[0-5][0-9]$/, "Invalid format (HH:MM:SS)"),
+  run_time: z.string().regex(/^([0-9]+):[0-5][0-9]:[0-5][0-9]$/, "Invalid format (HH:MM:SS)"),
 })
 
 type NewRecordFormProps = {
   onSave: () => void
   onClose: () => void
+}
+
+const timeStringToSeconds = (time: string): number => {
+    if (!time) return 0;
+    const parts = time.split(':').map(Number);
+    if (parts.some(isNaN)) return 0;
+    const [h=0, m=0, s=0] = parts;
+    return h * 3600 + m * 60 + s;
 }
 
 export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
@@ -48,17 +59,24 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
       machine_number: "",
       weft_meter: 0,
       stops: 0,
-      total_time: "00:00",
-      run_time: "00:00",
+      total_time: "00:00:00",
+      run_time: "00:00:00",
     },
   })
+  
+  const formatTimeToSeconds = (timeStr: string): string => {
+    if (timeWithSecondsRegex.test(timeStr)) return timeStr;
+    if (timeWithoutSecondsRegex.test(timeStr)) return `${timeStr}:00`;
+    return "00:00:00";
+  }
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSaving(true)
     const [hours] = values.time.split(':').map(Number);
-    const shift = (hours >= 7 && hours < 19) ? 'A' : 'B';
+    const shift = (hours >= 7 && hours < 19) ? 'Day' : 'Night';
     
-    if (timeStringToMinutes(values.run_time) > timeStringToMinutes(values.total_time)) {
+    if (timeStringToSeconds(values.run_time) > timeStringToSeconds(values.total_time)) {
         toast({
             variant: "destructive",
             title: "Invalid Input",
@@ -108,8 +126,8 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
           form.setValue("machine_number", result.machineNumber)
           form.setValue("weft_meter", result.weftMeter)
           form.setValue("stops", result.stops)
-          form.setValue("total_time", result.totalTime)
-          form.setValue("run_time", result.runTime)
+          form.setValue("total_time", formatTimeToSeconds(result.totalTime))
+          form.setValue("run_time", formatTimeToSeconds(result.runTime))
           toast({ title: "Scan successful", description: "Form fields populated from image." })
         } else {
            toast({ variant: "destructive", title: "Scan failed", description: "Could not extract data from image." })
@@ -192,15 +210,15 @@ export default function NewRecordForm({ onSave, onClose }: NewRecordFormProps) {
             )}/>
             <FormField control={form.control} name="total_time" render={({ field }) => (
                 <FormItem className={formItemClass}>
-                    <FormLabel className={formLabelClass}>Total Time (HH:MM)</FormLabel>
-                    <FormControl><Input placeholder="HH:MM" {...field} className={formInputClass} /></FormControl>
+                    <FormLabel className={formLabelClass}>Total Time (HH:MM:SS)</FormLabel>
+                    <FormControl><Input placeholder="HH:MM:SS" {...field} className={formInputClass} /></FormControl>
                     <FormMessage />
                 </FormItem>
             )}/>
             <FormField control={form.control} name="run_time" render={({ field }) => (
                 <FormItem className={formItemClass}>
-                    <FormLabel className={formLabelClass}>Run Time (HH:MM)</FormLabel>
-                    <FormControl><Input placeholder="HH:MM" {...field} className={formInputClass} /></FormControl>
+                    <FormLabel className={formLabelClass}>Run Time (HH:MM:SS)</FormLabel>
+                    <FormControl><Input placeholder="HH:MM:SS" {...field} className={formInputClass} /></FormControl>
                     <FormMessage />
                 </FormItem>
             )}/>

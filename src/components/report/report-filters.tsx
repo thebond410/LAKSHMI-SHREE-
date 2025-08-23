@@ -90,8 +90,8 @@ export default function ReportFilters({ onFilterChange }: ReportFiltersProps) {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="">All Shifts</SelectItem>
-          <SelectItem value="A">Day</SelectItem>
-          <SelectItem value="B">Night</SelectItem>
+          <SelectItem value="Day">Day</SelectItem>
+          <SelectItem value="Night">Night</SelectItem>
         </SelectContent>
       </Select>
     </div>

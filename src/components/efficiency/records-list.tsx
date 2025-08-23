@@ -14,27 +14,27 @@ import type { EfficiencyRecord } from '@/lib/types'
 import { Skeleton } from '../ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { format } from 'date-fns'
-import { minutesToHHMM, timeStringToMinutes } from '@/lib/utils'
+import { timeStringToSeconds, secondsToHHMMSS } from '@/lib/utils'
 
 type CalculatedRecord = EfficiencyRecord & {
   efficiency: number
-  diff: number
+  diff_seconds: number
   hr: number
   loss_prd: number
-  total_minutes: number
-  run_minutes: number
+  total_seconds: number
+  run_seconds: number
 }
 
 const calculateFields = (r: EfficiencyRecord): CalculatedRecord => {
-  const total_minutes = timeStringToMinutes(r.total_time);
-  const run_minutes = timeStringToMinutes(r.run_time);
-  const efficiency = total_minutes > 0 ? (run_minutes / total_minutes) * 100 : 0
-  const diff = total_minutes - run_minutes
-  const runTimeHours = run_minutes / 60;
+  const total_seconds = timeStringToSeconds(r.total_time);
+  const run_seconds = timeStringToSeconds(r.run_time);
+  const efficiency = total_seconds > 0 ? (run_seconds / total_seconds) * 100 : 0
+  const diff_seconds = total_seconds - run_seconds
+  const runTimeHours = run_seconds / 3600;
   const hr = runTimeHours > 0 ? r.weft_meter / runTimeHours : 0
-  const lossPrdHours = diff / 60;
+  const lossPrdHours = diff_seconds / 3600;
   const loss_prd = hr * lossPrdHours
-  return { ...r, efficiency, diff, hr, loss_prd, total_minutes, run_minutes }
+  return { ...r, efficiency, diff_seconds, hr, loss_prd, total_seconds, run_seconds }
 }
 
 const RecordsTable = ({ records, title }: { records: CalculatedRecord[], title: string }) => {
@@ -69,7 +69,7 @@ const RecordsTable = ({ records, title }: { records: CalculatedRecord[], title: 
                 <TableCell>{r.stops}</TableCell>
                 <TableCell>{r.total_time}</TableCell>
                 <TableCell>{r.run_time}</TableCell>
-                <TableCell>{minutesToHHMM(r.diff)}</TableCell>
+                <TableCell>{secondsToHHMMSS(r.diff_seconds)}</TableCell>
                 <TableCell>{r.weft_meter.toFixed(2)}</TableCell>
                 <TableCell>{r.hr.toFixed(2)}</TableCell>
                 <TableCell>{r.loss_prd.toFixed(2)}</TableCell>
@@ -126,8 +126,8 @@ export default function RecordsList() {
     }
   }, [])
 
-  const dayRecords = useMemo(() => records.filter(r => r.shift === 'A'), [records])
-  const nightRecords = useMemo(() => records.filter(r => r.shift === 'B'), [records])
+  const dayRecords = useMemo(() => records.filter(r => r.shift === 'Day'), [records])
+  const nightRecords = useMemo(() => records.filter(r => r.shift === 'Night'), [records])
 
   if (loading) {
     return <Skeleton className="w-full h-64" />

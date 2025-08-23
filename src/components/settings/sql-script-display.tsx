@@ -7,17 +7,26 @@ const sqlScript = `
 -- Make sure to back up your data if needed before running this.
 -- DROP TABLE IF EXISTS "efficiency_records";
 
+-- Create ENUM type for shift
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'shift_type') THEN
+        CREATE TYPE shift_type AS ENUM ('Day', 'Night');
+    END IF;
+END$$;
+
+
 -- Table for storing efficiency records from machines
 CREATE TABLE IF NOT EXISTS "efficiency_records" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
   "date" date NOT NULL,
-  "shift" character(1) NOT NULL, -- 'A' for Day, 'B' for Night
+  "shift" shift_type NOT NULL, -- 'Day' or 'Night'
   "machine_number" text NOT NULL,
-  "weft_meter" numeric(8, 2) NOT NULL,
+  "weft_meter" numeric(10, 2) NOT NULL,
   "stops" integer NOT NULL,
-  "total_time" text NOT NULL,
-  "run_time" text NOT NULL
+  "total_time" time NOT NULL, -- Format 'HH24:MI:SS'
+  "run_time" time NOT NULL -- Format 'HH24:MI:SS'
 );
 
 -- Table for storing application settings
@@ -39,6 +48,8 @@ CREATE TABLE IF NOT EXISTS "settings" (
 -- alter table efficiency_records enable row level security;
 -- create policy "Public access" on efficiency_records for select using (true);
 -- create policy "Public access" on efficiency_records for insert with check (true);
+-- create policy "Public access" on efficiency_records for update using (true);
+
 
 -- alter table settings enable row level security;
 -- create policy "Public access" on settings for select using (true);

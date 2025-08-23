@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { subDays, format, startOfDay } from 'date-fns'
-import { cn, timeStringToMinutes } from '@/lib/utils'
+import { cn, timeStringToSeconds } from '@/lib/utils'
 import { Skeleton } from '../ui/skeleton'
 import type { EfficiencyRecord } from '@/lib/types'
 
@@ -96,11 +96,11 @@ export default function PerformanceCards() {
         const calcMetrics = (recs: EfficiencyRecord[]) => {
           if (recs.length === 0) return { weft: 0, efficiency: 0 };
           const totalWeft = recs.reduce((sum, r) => sum + r.weft_meter, 0);
-          const totalMinutes = recs.reduce((sum, r) => sum + timeStringToMinutes(r.total_time), 0);
-          const runMinutes = recs.reduce((sum, r) => sum + timeStringToMinutes(r.run_time), 0);
+          const totalSeconds = recs.reduce((sum, r) => sum + timeStringToSeconds(r.total_time), 0);
+          const runSeconds = recs.reduce((sum, r) => sum + timeStringToSeconds(r.run_time), 0);
           return {
             weft: totalWeft,
-            efficiency: totalMinutes > 0 ? (runMinutes / totalMinutes) * 100 : 0
+            efficiency: totalSeconds > 0 ? (runSeconds / totalSeconds) * 100 : 0
           }
         }
         
