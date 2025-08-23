@@ -145,13 +145,13 @@ export default function NewRecordForm({ onSave, onClose, initialData, currentDat
 
     const recordPayload = {
       date: format(values.date, "yyyy-MM-dd"),
-      time: `${values.time}:00`,
+      time: `${values.time}:00`, // Format to HH:mm:ss for Supabase `time` type
       shift: values.shift,
       machine_number: values.machine_number,
       weft_meter: values.weft_meter,
       stops: values.stops,
-      total_time: values.total_time, // Keep as HH:MM
-      run_time: values.run_time,     // Keep as HH:MM
+      total_time: values.total_time,
+      run_time: values.run_time,
       created_at: new Date(values.date.setHours(
         parseInt(values.time.split(':')[0]),
         parseInt(values.time.split(':')[1])
@@ -184,6 +184,8 @@ export default function NewRecordForm({ onSave, onClose, initialData, currentDat
     } else {
       toast({
         title: `Record ${initialData ? 'Updated' : 'Saved'}`,
+        description: `M/C ${values.machine_number} record has been saved.`,
+        duration: 3000
       })
       onSave()
       if (initialData) {
@@ -215,22 +217,12 @@ export default function NewRecordForm({ onSave, onClose, initialData, currentDat
         }
       } catch (error) {
         console.error(error)
-        toast({
-          variant: "destructive",
-          title: "Scan Failed",
-          description: "Could not extract data from the image.",
-        })
       } finally {
         setIsScanning(false)
       }
     }
     reader.onerror = () => {
         setIsScanning(false)
-        toast({
-          variant: "destructive",
-          title: "File Error",
-          description: "Could not read the selected file.",
-        })
     }
   }
 
