@@ -247,6 +247,7 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
         toast({ variant: 'destructive', title: 'Error deleting record', description: error.message })
     } else {
         toast({ title: 'Record deleted successfully' })
+        fetchRecords() // Re-fetch data after deletion
     }
   }
 
