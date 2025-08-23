@@ -79,7 +79,7 @@ export default function DailySummaryCards() {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+      <div className="grid grid-cols-3 md:grid-cols-4 gap-1">
         {Array.from({ length: 8 }).map((_, i) => (
           <Skeleton key={i} className="h-24" />
         ))}
@@ -93,7 +93,7 @@ export default function DailySummaryCards() {
         <CardTitle className="text-sm">Last 8 Days Summary</CardTitle>
       </CardHeader>
       <CardContent className="p-1">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+        <div className="grid grid-cols-3 md:grid-cols-4 gap-1">
           {summaryData.map(summary => {
              const effColor =
                 summary.avg_efficiency > 90

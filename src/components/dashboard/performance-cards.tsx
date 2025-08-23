@@ -126,13 +126,13 @@ export default function PerformanceCards() {
   }, [])
 
   if (loading) {
-    return <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-1">
+    return <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-1">
       {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
     </div>
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-1">
+    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-1">
       {performanceData.map(data => (
         <EfficiencyCard key={data.machine_number} data={data} />
       ))}
