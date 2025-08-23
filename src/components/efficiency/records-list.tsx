@@ -233,7 +233,6 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
     const channel = supabase.channel('efficiency_records_list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'efficiency_records', filter: `date=eq.${date}` },
         (payload) => {
-            // Re-fetch on all changes for simplicity
             fetchRecords();
         }
       )
@@ -242,7 +241,7 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [date, toast, fetchRecords])
+  }, [date, fetchRecords])
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this record?')) return
@@ -251,8 +250,8 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
         toast({ variant: 'destructive', title: 'Error deleting record', description: error.message })
     } else {
         toast({ title: 'Record deleted successfully' })
-        // Optimistically remove from UI
-        setRecords(prevRecords => prevRecords.filter(r => r.id !== id));
+        // Re-fetch the data to ensure the list is up-to-date.
+        fetchRecords()
     }
   }
 
