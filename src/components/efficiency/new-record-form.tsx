@@ -205,6 +205,7 @@ export default function NewRecordForm({ onSave, onClose, initialData, currentDat
           form.setValue("stops", result.stops)
           form.setValue("total_time", timeStringToHHMM(result.totalTime))
           form.setValue("run_time", timeStringToHHMM(result.runTime))
+          form.setValue("shift", result.shift)
         }
       } catch (error) {
         console.error(error)

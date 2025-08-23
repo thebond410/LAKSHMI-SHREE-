@@ -29,6 +29,7 @@ const ExtractEfficiencyDataOutputSchema = z.object({
   totalTime: z.string().describe("The total time from the display in HH:MM format. It's labeled 'Total Time'."),
   runTime: z.string().describe("The run time from the display in HH:MM format. It's labeled 'Run time len'."),
   machineNumber: z.string().describe('The machine number from the display. This is a critical field. It is a numerical identifier for the machine, often on a steel plate or on the screen. Be very precise in extracting this number.'),
+  shift: z.enum(["Day", "Night"]).describe("The shift, determined by which letter has a yellow background on the display. 'A' for Day, 'B' for Night."),
 });
 export type ExtractEfficiencyDataOutput = z.infer<typeof ExtractEfficiencyDataOutputSchema>;
 
@@ -51,7 +52,8 @@ const prompt = ai.definePrompt({
   - Stops (All stops): A number.
   - Total Time: A time value in HH:MM format from the "Total Time" field.
   - Run Time (Run time len): A time value in HH:MM format from the "Run time len" field.
-  - Machine Number: This is the most important field. It is the numerical identifier for the machine. It might be on a physical steel plate attached to the machine, or shown on the digital display itself. You MUST find this number and return it as a string. Be very accurate.
+  - Machine Number: This is the most important field. Look for a number on a physical steel plate attached to the machine, often visible in the photo. If it's not on a plate, find it on the digital display. You MUST find this number and return it as a string. Be very accurate.
+  - Shift: Look for the letters 'A' and 'B' on the display. If 'A' has a yellow background, the shift is "Day". If 'B' has a yellow background, the shift is "Night".
 
   Return ONLY the extracted data in a valid JSON object. Do not include any extra text or explanations. Be very precise and fast.
 
