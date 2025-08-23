@@ -1,12 +1,13 @@
 
 'use client'
 import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import NewRecordForm from '@/components/efficiency/new-record-form'
 import RecordsList from '@/components/efficiency/records-list'
 import { PlusCircle, Calendar as CalendarIcon } from 'lucide-react'
 import { DatePicker } from '@/components/ui/date-picker'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, isValid } from 'date-fns'
 import type { EfficiencyRecord } from '@/lib/types'
 
 export default function EfficiencyPage() {
@@ -15,14 +16,27 @@ export default function EfficiencyPage() {
   const [recordsVersion, setRecordsVersion] = useState(0)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [editingRecord, setEditingRecord] = useState<EfficiencyRecord | null>(null)
+  const router = useRouter();
+  const searchParams = useSearchParams();
   
   useEffect(() => {
     // This effect runs only on the client, after the initial render.
     // This prevents a hydration mismatch.
+    const dateFromQuery = searchParams.get('date');
+    if (dateFromQuery) {
+        const parsedDate = parseISO(dateFromQuery);
+        if (isValid(parsedDate)) {
+            setSelectedDate(parsedDate);
+            // clean up query param
+            router.replace('/efficiency', {scroll: false}); 
+            return;
+        }
+    }
+    
     const storedDate = localStorage.getItem('efficiencyDate');
     if (storedDate) {
       const date = parseISO(storedDate);
-      if (!isNaN(date.getTime())) {
+      if (isValid(date)) {
         setSelectedDate(date);
         return;
       }
