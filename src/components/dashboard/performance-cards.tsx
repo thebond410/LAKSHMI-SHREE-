@@ -21,7 +21,9 @@ const EfficiencyCard = ({ data }: { data: PerformanceData }) => {
       ? 'bg-green-200/50 border-green-500'
       : data.today_efficiency > 80
       ? 'bg-blue-200/50 border-blue-500'
-      : 'bg-red-200/50 border-red-500'
+      : data.today_efficiency > 0
+      ? 'bg-red-200/50 border-red-500'
+      : 'bg-stone-200/50 border-stone-500'
 
   return (
     <Card className={cn('p-1', effColor)}>
