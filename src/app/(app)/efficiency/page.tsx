@@ -9,29 +9,34 @@ import { DatePicker } from '@/components/ui/date-picker'
 import { format, parseISO } from 'date-fns'
 import type { EfficiencyRecord } from '@/lib/types'
 
-const getInitialDate = (): Date => {
-  if (typeof window === 'undefined') {
-    return new Date();
-  }
-  const storedDate = localStorage.getItem('efficiencyDate');
-  if (storedDate) {
-    const date = parseISO(storedDate);
-    if (!isNaN(date.getTime())) {
-      return date;
-    }
-  }
-  return new Date();
-}
-
 export default function EfficiencyPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   // key to force re-render/re-fetch of records list after a save
   const [recordsVersion, setRecordsVersion] = useState(0)
-  const [selectedDate, setSelectedDate] = useState<Date>(getInitialDate())
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [editingRecord, setEditingRecord] = useState<EfficiencyRecord | null>(null)
   
   useEffect(() => {
-    localStorage.setItem('efficiencyDate', selectedDate.toISOString());
+    // This effect runs only on the client, after the initial render.
+    // This prevents a hydration mismatch.
+    const storedDate = localStorage.getItem('efficiencyDate');
+    if (storedDate) {
+      const date = parseISO(storedDate);
+      if (!isNaN(date.getTime())) {
+        setSelectedDate(date);
+        return;
+      }
+    }
+    // If no valid date in storage, default to today.
+    setSelectedDate(new Date());
+  }, []); // Empty dependency array ensures this runs only once on mount.
+
+
+  useEffect(() => {
+    // This effect saves the date to localStorage whenever it changes.
+    if (selectedDate) {
+        localStorage.setItem('efficiencyDate', selectedDate.toISOString());
+    }
   }, [selectedDate]);
 
   const handleSave = () => {
@@ -62,6 +67,11 @@ export default function EfficiencyPage() {
     if (date) {
         setSelectedDate(date);
     }
+  }
+
+  // Render a loading state or nothing until the date is determined client-side
+  if (!selectedDate) {
+    return null; // Or a loading spinner
   }
 
   return (
