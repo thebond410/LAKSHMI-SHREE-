@@ -64,7 +64,7 @@ export default function ReportView({ filters, onDataLoaded }: ReportViewProps) {
         query = query.eq('shift', filters.shift)
       }
 
-      query = query.order('date', { ascending: false }).order('shift').order('machine_number')
+      query = query.order('date', { ascending: false }).order('shift').order('machine_number', {ascending: true})
 
       const { data, error } = await query
 
@@ -102,7 +102,7 @@ export default function ReportView({ filters, onDataLoaded }: ReportViewProps) {
     <div className="overflow-x-auto">
       {sortedDates.length === 0 && !loading ? <p className="text-center p-8 text-muted-foreground">No records found for the selected filters.</p> : null}
       {sortedDates.map(date => {
-        const dateRecords = groupedByDate[date];
+        const dateRecords = groupedByDate[date].sort((a, b) => parseInt(a.machine_number) - parseInt(b.machine_number));
         const totals = dateRecords.reduce((acc, r) => {
             acc.weft += r.weft_meter;
             acc.loss_prd += r.loss_prd;
@@ -123,25 +123,25 @@ export default function ReportView({ filters, onDataLoaded }: ReportViewProps) {
               <TableBody>
                 {dateRecords.map(r => (
                   <TableRow key={r.id} className="text-center [&_td]:p-0.5">
-                    <TableCell>{r.machine_number}</TableCell>
+                    <TableCell className="font-extrabold">{r.machine_number}</TableCell>
                     <TableCell>{r.shift}</TableCell>
-                    <TableCell>{r.efficiency.toFixed(2)}</TableCell>
-                    <TableCell>{r.stops}</TableCell>
+                    <TableCell className={`font-extrabold ${r.efficiency > 90 ? 'text-green-600' : r.efficiency > 80 ? 'text-blue-600' : 'text-red-600'}`}>{r.efficiency.toFixed(2)}</TableCell>
+                    <TableCell className="font-extrabold text-orange-600">{r.stops}</TableCell>
                     <TableCell>{r.total_time}</TableCell>
                     <TableCell>{r.run_time}</TableCell>
-                    <TableCell>{minutesToHHMM(r.diff_minutes)}</TableCell>
-                    <TableCell>{r.weft_meter.toFixed(2)}</TableCell>
+                    <TableCell className="text-red-500">{minutesToHHMM(r.diff_minutes)}</TableCell>
+                    <TableCell className="text-purple-600 font-extrabold">{r.weft_meter.toFixed(2)}</TableCell>
                     <TableCell>{r.hr.toFixed(2)}</TableCell>
-                    <TableCell>{r.loss_prd.toFixed(2)}</TableCell>
+                    <TableCell className="text-red-600 font-extrabold">{r.loss_prd.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
               <TableFooter>
                 <TableRow className="text-center font-extrabold bg-muted/30 [&_td]:p-1">
                     <TableCell colSpan={7}>Total for {format(new Date(date.replace(/-/g, '/')), 'dd/MM')}</TableCell>
-                    <TableCell>{totals.weft.toFixed(2)}</TableCell>
+                    <TableCell className="text-purple-600">{totals.weft.toFixed(2)}</TableCell>
                     <TableCell></TableCell>
-                    <TableCell>{totals.loss_prd.toFixed(2)}</TableCell>
+                    <TableCell className="text-red-600">{totals.loss_prd.toFixed(2)}</TableCell>
                 </TableRow>
               </TableFooter>
             </Table>

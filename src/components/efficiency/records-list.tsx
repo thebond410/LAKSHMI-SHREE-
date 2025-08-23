@@ -66,15 +66,21 @@ const RecordsTable = ({ records, title, date, settings, onDelete, onEdit, onSort
     return [...records].sort((a, b) => {
       let aVal = a[key];
       let bVal = b[key];
+      
+      // Handle numeric sorting for machine_number
+      if (key === 'machine_number') {
+        const numA = parseInt(aVal as string, 10);
+        const numB = parseInt(bVal as string, 10);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return direction === 'asc' ? numA - numB : numB - numA;
+        }
+      }
 
       if (typeof aVal === 'string' && typeof bVal === 'string') {
         if (key === 'time' || key === 'total_time' || key === 'run_time') {
            const timeA = timeStringToSeconds(aVal)
            const timeB = timeStringToSeconds(bVal)
            return direction === 'asc' ? timeA - timeB : timeB - timeA
-        }
-        if (key === 'machine_number') {
-            return direction === 'asc' ? parseInt(aVal) - parseInt(bVal) : parseInt(bVal) - parseInt(aVal);
         }
         return direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
@@ -119,53 +125,55 @@ const RecordsTable = ({ records, title, date, settings, onDelete, onEdit, onSort
         <CardTitle className="text-sm">{title} - {format(new Date(date.replace(/-/g, '/')), 'dd/MM/yyyy')}</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <Table className="text-[11px] font-bold">
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              {headers.map(h => 
-                <TableHead key={h.key} className="h-auto p-0.5 text-center cursor-pointer" onClick={() => h.key !== 'actions' && onSort(h.key as keyof CalculatedRecord)}>
-                    {h.label}
-                </TableHead>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedRecords.map(r => (
-              <TableRow key={r.id} className="text-center [&_td]:p-0.5">
-                <TableCell className="font-extrabold">{r.machine_number}</TableCell>
-                <TableCell>{r.time}</TableCell>
-                <TableCell className={`font-extrabold ${r.efficiency > 90 ? 'text-green-600' : r.efficiency > 80 ? 'text-blue-600' : 'text-red-600'}`}>{r.efficiency.toFixed(2)}</TableCell>
-                <TableCell className="font-extrabold text-orange-600">{r.stops}</TableCell>
-                <TableCell>{r.total_time}</TableCell>
-                <TableCell>{r.run_time}</TableCell>
-                <TableCell className="text-red-500">{minutesToHHMM(r.diff_minutes)}</TableCell>
-                <TableCell className="text-purple-600 font-extrabold">{r.weft_meter.toFixed(2)}</TableCell>
-                <TableCell>{r.hr.toFixed(2)}</TableCell>
-                <TableCell className="text-red-600 font-extrabold">{r.loss_prd.toFixed(2)}</TableCell>
-                <TableCell className="flex justify-center items-center gap-1">
-                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => onEdit(r)}>
-                        <Pencil className="h-3 w-3 text-blue-500" />
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => handleWhatsApp(r)}>
-                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-                    </Button>
-                    <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => onDelete(r.id)}>
-                        <Trash2 className="h-3 w-3 text-red-500" />
-                    </Button>
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table className="text-[11px] font-bold w-full">
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                {headers.map(h => 
+                  <TableHead key={h.key} className="h-auto p-0.5 text-center cursor-pointer whitespace-nowrap" onClick={() => h.key !== 'actions' && onSort(h.key as keyof CalculatedRecord)}>
+                      {h.label}
+                  </TableHead>
+                )}
               </TableRow>
-            ))}
-          </TableBody>
-          <TableFooter>
-             <TableRow className="text-center font-extrabold [&_td]:p-1">
-                <TableCell colSpan={7}>Total</TableCell>
-                <TableCell className="text-purple-600">{totals.weft.toFixed(2)}</TableCell>
-                <TableCell></TableCell>
-                <TableCell className="text-red-600">{totals.loss_prd.toFixed(2)}</TableCell>
-                <TableCell></TableCell>
-             </TableRow>
-          </TableFooter>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {sortedRecords.map(r => (
+                <TableRow key={r.id} className="text-center [&_td]:p-0.5 [&_td]:whitespace-nowrap">
+                  <TableCell className="font-extrabold">{r.machine_number}</TableCell>
+                  <TableCell>{r.time}</TableCell>
+                  <TableCell className={`font-extrabold ${r.efficiency > 90 ? 'text-green-600' : r.efficiency > 80 ? 'text-blue-600' : 'text-red-600'}`}>{r.efficiency.toFixed(2)}</TableCell>
+                  <TableCell className="font-extrabold text-orange-600">{r.stops}</TableCell>
+                  <TableCell>{r.total_time}</TableCell>
+                  <TableCell>{r.run_time}</TableCell>
+                  <TableCell className="text-red-500">{minutesToHHMM(r.diff_minutes)}</TableCell>
+                  <TableCell className="text-purple-600 font-extrabold">{r.weft_meter.toFixed(2)}</TableCell>
+                  <TableCell>{r.hr.toFixed(2)}</TableCell>
+                  <TableCell className="text-red-600 font-extrabold">{r.loss_prd.toFixed(2)}</TableCell>
+                  <TableCell className="flex justify-center items-center gap-1">
+                      <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => onEdit(r)}>
+                          <Pencil className="h-3 w-3 text-blue-500" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => handleWhatsApp(r)}>
+                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => onDelete(r.id)}>
+                          <Trash2 className="h-3 w-3 text-red-500" />
+                      </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter>
+               <TableRow className="text-center font-extrabold [&_td]:p-1">
+                  <TableCell colSpan={7}>Total</TableCell>
+                  <TableCell className="text-purple-600">{totals.weft.toFixed(2)}</TableCell>
+                  <TableCell></TableCell>
+                  <TableCell className="text-red-600">{totals.loss_prd.toFixed(2)}</TableCell>
+                  <TableCell></TableCell>
+               </TableRow>
+            </TableFooter>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   )
@@ -190,7 +198,8 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
       console.error("Error fetching records:", error)
       toast({ variant: 'destructive', title: 'Error fetching records', description: error.message})
     } else {
-      setRecords(data.map(calculateFields))
+      const sortedData = data.sort((a,b) => parseInt(a.machine_number) - parseInt(b.machine_number));
+      setRecords(sortedData.map(calculateFields))
     }
     setLoading(false)
   }, [date, toast])
@@ -238,7 +247,6 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
         toast({ variant: 'destructive', title: 'Error deleting record', description: error.message })
     } else {
         toast({ title: 'Record deleted successfully' })
-        fetchRecords(); // Refetch after delete
     }
   }
 
