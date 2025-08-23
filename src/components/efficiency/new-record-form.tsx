@@ -182,8 +182,7 @@ export default function NewRecordForm({ onSave, onClose, initialData }: NewRecor
       })
     } else {
       toast({
-        title: `Record ${initialData ? 'updated' : 'saved'}`,
-        description: `Efficiency record for M/C ${values.machine_number} has been successfully ${initialData ? 'updated' : 'saved'}.`,
+        title: `Record ${initialData ? 'Updated' : 'Saved'}`,
       })
       onSave()
       if (initialData) {
@@ -212,19 +211,14 @@ export default function NewRecordForm({ onSave, onClose, initialData }: NewRecor
           form.setValue("stops", result.stops)
           form.setValue("total_time", formatTimeToSeconds(result.totalTime))
           form.setValue("run_time", formatTimeToSeconds(result.runTime))
-          toast({ title: "Scan successful", description: "Form fields populated from image." })
-        } else {
-           toast({ variant: "destructive", title: "Scan failed", description: "Could not extract data from image." })
         }
       } catch (error) {
         console.error(error)
-        toast({ variant: "destructive", title: "Scan error", description: "An error occurred during AI processing." })
       } finally {
         setIsScanning(false)
       }
     }
     reader.onerror = () => {
-        toast({ variant: "destructive", title: "File read error" })
         setIsScanning(false)
     }
   }
@@ -345,5 +339,3 @@ export default function NewRecordForm({ onSave, onClose, initialData }: NewRecor
     </Form>
   )
 }
-
-    
