@@ -14,7 +14,7 @@ import type { EfficiencyRecord, Settings } from '@/lib/types'
 import { Skeleton } from '../ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { format, parseISO } from 'date-fns'
-import { timeStringToMinutes, minutesToHHMM } from '@/lib/utils'
+import { timeStringToSeconds, minutesToHHMM } from '@/lib/utils'
 import { Button } from '../ui/button'
 import { Pencil, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
@@ -24,18 +24,22 @@ type CalculatedRecord = EfficiencyRecord & {
   diff_minutes: number
   hr: number
   loss_prd: number
+  run_minutes: number
+  total_minutes: number
 }
 
 const calculateFields = (r: EfficiencyRecord): CalculatedRecord => {
-  const total_minutes = timeStringToMinutes(r.total_time);
-  const run_minutes = timeStringToMinutes(r.run_time);
+  const total_seconds = timeStringToSeconds(r.total_time);
+  const run_seconds = timeStringToSeconds(r.run_time);
+  const total_minutes = total_seconds / 60;
+  const run_minutes = run_seconds / 60;
   const efficiency = total_minutes > 0 ? (run_minutes / total_minutes) * 100 : 0
   const diff_minutes = total_minutes - run_minutes
   const runTimeHours = run_minutes / 60;
   const hr = runTimeHours > 0 ? r.weft_meter / runTimeHours : 0
   const lossPrdHours = diff_minutes / 60;
   const loss_prd = hr * lossPrdHours
-  return { ...r, efficiency, diff_minutes, hr, loss_prd }
+  return { ...r, efficiency, diff_minutes, hr, loss_prd, run_minutes, total_minutes }
 }
 
 const RecordsTable = ({ records, title, date, settings, onDelete, onEdit }: { records: CalculatedRecord[], title: string, date: string, settings: Settings | null, onDelete: (id: string) => void, onEdit: (record: EfficiencyRecord) => void }) => {
@@ -199,3 +203,5 @@ export default function RecordsList({ date, onEdit }: { date: string, onEdit: (r
     </div>
   )
 }
+
+    

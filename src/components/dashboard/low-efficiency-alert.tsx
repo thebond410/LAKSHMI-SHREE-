@@ -1,15 +1,17 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { subDays, format } from 'date-fns'
+import { subDays, format, parseISO } from 'date-fns'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '../ui/skeleton'
 import { timeStringToSeconds } from '@/lib/utils'
+import type { EfficiencyRecord } from '@/lib/types'
 
 type LowEfficiencyMachine = {
   machine_number: string
   avg_efficiency: number
+  records: EfficiencyRecord[]
 }
 
 export default function LowEfficiencyAlert() {
@@ -40,7 +42,7 @@ export default function LowEfficiencyAlert() {
 
       const { data, error } = await supabase
         .from('efficiency_records')
-        .select('machine_number, total_time, run_time')
+        .select('*')
         .gte('date', threeDaysAgo)
 
       if (error) {
@@ -51,12 +53,13 @@ export default function LowEfficiencyAlert() {
 
       const grouped = data.reduce((acc, r) => {
         if (!acc[r.machine_number]) {
-          acc[r.machine_number] = { total_seconds: 0, run_seconds: 0 }
+          acc[r.machine_number] = { total_seconds: 0, run_seconds: 0, records: [] }
         }
         acc[r.machine_number].total_seconds += timeStringToSeconds(r.total_time)
         acc[r.machine_number].run_seconds += timeStringToSeconds(r.run_time)
+        acc[r.machine_number].records.push(r)
         return acc
-      }, {} as Record<string, { total_seconds: number; run_seconds: number }>)
+      }, {} as Record<string, { total_seconds: number; run_seconds: number, records: EfficiencyRecord[] }>)
 
       const machines = Object.keys(grouped)
         .map(machine_number => ({
@@ -64,6 +67,7 @@ export default function LowEfficiencyAlert() {
           avg_efficiency: grouped[machine_number].total_seconds > 0 
             ? (grouped[machine_number].run_seconds / grouped[machine_number].total_seconds) * 100 
             : 0,
+          records: grouped[machine_number].records
         }))
         .filter(m => m.avg_efficiency < currentSettings.threshold && m.avg_efficiency > 0)
         .sort((a, b) => a.avg_efficiency - b.avg_efficiency)
@@ -78,9 +82,17 @@ export default function LowEfficiencyAlert() {
   const handleWhatsApp = () => {
     if(!settings || !settings.number || lowEffMachines.length === 0) return;
     
-    const report = lowEffMachines.map(m => `M/C ${m.machine_number}: ${m.avg_efficiency.toFixed(2)}%`).join('\n');
-    const message = `Low Efficiency Report (last 3 days):\n\n${report}`;
-    const url = `https://wa.me/${settings.number}?text=${encodeURIComponent(message)}`;
+    const message = lowEffMachines.map(machine => {
+        const machineHeader = `Machine No - *${machine.machine_number}*`;
+        const recordsInfo = machine.records.map(r => {
+            const efficiency = timeStringToSeconds(r.total_time) > 0 ? (timeStringToSeconds(r.run_time) / timeStringToSeconds(r.total_time)) * 100 : 0;
+            return `${format(parseISO(r.date), 'dd/MM/yy')}, ${r.shift}, Effi- ${efficiency.toFixed(0)}%, stop-${r.stops}`;
+        }).join('\n');
+        return `${machineHeader}\n${recordsInfo}`;
+    }).join('\n\n');
+
+    const fullMessage = `Low Efficiency Report (last 3 days):\n\n${message}`;
+    const url = `https://wa.me/${settings.number}?text=${encodeURIComponent(fullMessage)}`;
     window.open(url, '_blank');
   };
 
